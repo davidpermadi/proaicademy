@@ -1,0 +1,12 @@
+# Netlify deploy config.
+# Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION
+# in Site settings → Environment variables. The build step writes them into proai-env.js.
+[build]
+  command = "npm run build"
+  publish = "."
+
+# Serve the integrated app (app.html) at the site root.
+[[redirects]]
+  from = "/"
+  to = "/app.html"
+  status = 200

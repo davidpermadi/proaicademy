@@ -1,0 +1,39 @@
+# ProAIcademy — Apache / LiteSpeed config (Hostinger shared hosting).
+# Lives in public_html (repo root). Static site, so no build step needed on the server —
+# proai-env.js is committed with its public values.
+
+# Serve the integrated app (app.html) at the domain root, not the legacy index.html bundle.
+DirectoryIndex app.html index.html
+
+# Force HTTPS (Hostinger provides free SSL; remove this block if SSL isn't active yet).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Don't serve source / config files that get copied along with the repo.
+<FilesMatch "(^\.|\.(env|md|toml|ts|sh|zip)$|^(server|package(-lock)?)\.(js|json)$)">
+  Require all denied
+</FilesMatch>
+
+# Hide source-only folders.
+RedirectMatch 404 ^/(supabase|scripts|\.git|\.claude)(/|$)
+
+# Long cache for vendored libraries (immutable, versioned by filename).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|gif|webp)$">
+    Header set Cache-Control "public, max-age=31536000"
+  </FilesMatch>
+  # Always re-check the HTML entry and the env config so updates show immediately.
+  <FilesMatch "^(app|index)\.html$|^proai-(env|config)\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+# Correct MIME types (usually set already, but harmless to be explicit).
+<IfModule mod_mime.c>
+  AddType text/javascript .js
+  AddType application/json .json
+  AddType image/svg+xml .svg
+</IfModule>

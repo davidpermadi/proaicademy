@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./vendor/supabase.js"></script>
+<script src="./proai-env.js"></script>
+<script src="./proai-config.js"></script>
+<script src="./support.local.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:#07070c;color:#e8e8f0;font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:rgba(124,58,237,.4)}
+  input,textarea,select,button{font-family:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:#0b0b14}
+  ::-webkit-scrollbar-thumb{background:#26263a;border-radius:6px}
+  :root{--ac1:#7c3aed;--ac2:#2563eb;--acGlow:rgba(124,58,237,.45)}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+  @keyframes floaty2{0%,100%{transform:translateY(0)}50%{transform:translateY(18px)}}
+  @keyframes pulseGlow{0%,100%{opacity:.5}50%{opacity:.9}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%, rgba(124,58,237,.16), transparent 60%), radial-gradient(900px 500px at 0% 20%, rgba(37,99,235,.12), transparent 55%), #07070c;position:relative">
+
+  <!-- NAV -->
+  <nav style="position:sticky;top:0;z-index:80;backdrop-filter:blur(18px);background:rgba(7,7,12,.72);border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="max-width:1240px;margin:0 auto;padding:0 28px;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px">
+      <button onClick="{{ goHome }}" style="display:flex;align-items:center;gap:11px;background:none;border:none;cursor:pointer;padding:0">
+        <span style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--ac1),var(--ac2));display:grid;place-items:center;box-shadow:0 8px 26px var(--acGlow)">
+          <span style="font-family:'Sora';font-weight:800;color:#fff;font-size:19px;letter-spacing:-1px">P</span>
+        </span>
+        <span style="font-family:'Sora';font-weight:700;font-size:19px;color:#fff;letter-spacing:-.5px">Pro<span style="color:#b69bff">AI</span>cademy</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:4px">
+        <sc-for list="{{ navLinks }}" as="link" hint-placeholder-count="4">
+          <button onClick="{{ link.go }}" style="background:none;border:none;cursor:pointer;color:{{ link.color }};font-size:14.5px;font-weight:600;padding:9px 15px;border-radius:9px;transition:color .2s" style-hover="color:#fff">{{ link.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button onClick="{{ toggleLang }}" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;color:#cfcfe2;font-size:13px;font-weight:700;padding:8px 12px;border-radius:9px" style-hover="background:rgba(255,255,255,.1)">
+          <span style="opacity:.6">🌐</span>{{ langLabel }}
+        </button>
+        <button onClick="{{ openCart }}" style="position:relative;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;color:#fff;padding:9px 12px;border-radius:9px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700" style-hover="background:rgba(255,255,255,.1)">
+          🛒
+          <sc-if value="{{ cartCount }}" hint-placeholder-val="{{ true }}">
+            <span style="position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 4px 12px var(--acGlow)">{{ cartCount }}</span>
+          </sc-if>
+        </button>
+        <button onClick="{{ navAuth }}" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;cursor:pointer;color:#fff;font-size:14px;font-weight:700;padding:10px 18px;border-radius:9px;box-shadow:0 8px 22px var(--acGlow)" style-hover="filter:brightness(1.1)">{{ navAuthLabel }}</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== HOME ===================== -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Home">
+
+    <!-- HERO -->
+    <section style="position:relative;overflow:hidden;padding:90px 28px 70px">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:54px 54px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 35%,#000,transparent 80%);mask-image:radial-gradient(ellipse 70% 60% at 50% 35%,#000,transparent 80%)"></div>
+      <div style="position:absolute;top:-60px;left:8%;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(36px);animation:floaty 9s ease-in-out infinite;pointer-events:none"></div>
+      <div style="position:absolute;top:60px;right:6%;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.4),transparent 70%);filter:blur(40px);animation:floaty2 11s ease-in-out infinite;pointer-events:none"></div>
+      <div style="position:relative;max-width:920px;margin:0 auto;text-align:center">
+        <div style="display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:600;color:#cbb6ff;margin-bottom:26px">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--ac1);box-shadow:0 0 10px var(--ac1);animation:pulseGlow 2s infinite"></span>{{ t.hero.badge }}
+        </div>
+        <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(42px,6.2vw,76px);line-height:1.02;letter-spacing:-2.5px;color:#fff;margin-bottom:22px">
+          {{ t.hero.t1 }}<br><span style="background:linear-gradient(120deg,var(--ac1),var(--ac2) 70%,#7dd3fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">{{ t.hero.t2 }}</span>
+        </h1>
+        <p style="font-size:clamp(16px,1.7vw,19px);line-height:1.6;color:#a6a6c0;max-width:640px;margin:0 auto 34px">{{ t.hero.sub }}</p>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+          <button onClick="{{ goCatalog }}" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:16px;padding:15px 30px;border-radius:13px;cursor:pointer;box-shadow:0 14px 36px var(--acGlow)" style-hover="filter:brightness(1.1);transform:translateY(-2px)">{{ t.hero.cta1 }} →</button>
+          <button onClick="{{ goConsulting }}" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-weight:700;font-size:16px;padding:15px 30px;border-radius:13px;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">{{ t.hero.cta2 }}</button>
+        </div>
+        <div style="margin-top:40px;display:flex;align-items:center;justify-content:center;gap:13px;color:#7e7e98;font-size:13.5px">
+          <div style="display:flex">
+            <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);border:2px solid #07070c;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff">A</span>
+            <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#059669,#0891b2);border:2px solid #07070c;margin-left:-10px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff">B</span>
+            <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#db2777,#7c3aed);border:2px solid #07070c;margin-left:-10px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff">C</span>
+            <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ea580c,#db2777);border:2px solid #07070c;margin-left:-10px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff">D</span>
+          </div>
+          <span>★★★★★ &nbsp;{{ t.hero.trust }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section style="padding:0 28px 30px">
+      <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
+          <div style="text-align:center;padding:26px 14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">
+            <div style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3vw,38px);background:linear-gradient(120deg,#fff,#b69bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px">{{ s.n }}</div>
+            <div style="color:#8a8aa3;font-size:13.5px;font-weight:600;margin-top:5px">{{ s.l }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- COURSES -->
+    <section style="padding:70px 28px 30px">
+      <div style="max-width:1240px;margin:0 auto">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:36px;flex-wrap:wrap">
+          <div>
+            <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(28px,3.4vw,40px);color:#fff;letter-spacing:-1.2px;margin-bottom:10px">{{ t.courses.title }}</h2>
+            <p style="color:#9a9ab0;font-size:16px;max-width:520px">{{ t.courses.sub }}</p>
+          </div>
+          <button onClick="{{ goCatalog }}" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:14px;padding:12px 20px;border-radius:11px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.1)">{{ t.courses.viewAll }} →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+          <sc-for list="{{ homeCourses }}" as="c" hint-placeholder-count="6">
+            <div onClick="{{ c.view }}" style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);overflow:hidden;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s;display:flex;flex-direction:column" style-hover="transform:translateY(-6px);border-color:rgba(124,58,237,.5);box-shadow:0 20px 50px rgba(0,0,0,.4)">
+              <div style="position:relative;height:158px;background:{{ c.grad }};overflow:hidden">
+                <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 80% 20%,rgba(255,255,255,.25),transparent 45%),linear-gradient(0deg,rgba(0,0,0,.35),transparent 60%)"></div>
+                <div style="position:absolute;inset:0;display:grid;place-items:center;font-size:48px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3))">{{ c.icon }}</div>
+                <span style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);color:#fff;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:100px">{{ c.cat }}</span>
+                <sc-if value="{{ c.hasTag }}" hint-placeholder-val="{{ true }}">
+                  <span style="position:absolute;top:12px;right:12px;background:#fff;color:#111;font-size:11px;font-weight:800;padding:5px 10px;border-radius:100px">{{ c.tag }}</span>
+                </sc-if>
+              </div>
+              <div style="padding:18px;display:flex;flex-direction:column;flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+                  <span style="font-size:12px;font-weight:600;color:#8a8aa3">{{ c.levelLabel }}</span>
+                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                </div>
+                <h3 style="font-family:'Sora';font-weight:700;font-size:17px;color:#fff;line-height:1.3;margin-bottom:8px;min-height:44px">{{ c.title }}</h3>
+                <p style="font-size:13px;color:#9a9ab0;line-height:1.5;margin-bottom:16px;flex:1">{{ c.desc }}</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto">
+                  <div style="display:flex;align-items:baseline;gap:8px">
+                    <span style="font-family:'Sora';font-weight:800;font-size:19px;color:#fff">{{ c.priceFmt }}</span>
+                    <sc-if value="{{ c.hasOld }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;color:#6a6a85;text-decoration:line-through">{{ c.oldFmt }}</span></sc-if>
+                  </div>
+                  <button onClick="{{ c.addClick }}" style="background:rgba(124,58,237,.16);border:1px solid rgba(124,58,237,.4);color:#cbb6ff;font-weight:700;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap" style-hover="background:var(--ac1);color:#fff">+ {{ t.courses.add }}</button>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- EBOOKS -->
+    <section style="padding:60px 28px">
+      <div style="max-width:1240px;margin:0 auto">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:34px;flex-wrap:wrap">
+          <div>
+            <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,36px);color:#fff;letter-spacing:-1px;margin-bottom:9px">{{ t.ebooks.title }}</h2>
+            <p style="color:#9a9ab0;font-size:16px">{{ t.ebooks.sub }}</p>
+          </div>
+          <button onClick="{{ goEbooks }}" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:14px;padding:12px 20px;border-radius:11px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.1)">{{ t.ebooks.viewAll }} →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+          <sc-for list="{{ ebooks }}" as="e" hint-placeholder-count="4">
+            <div style="border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);padding:20px;display:flex;flex-direction:column;transition:transform .25s,border-color .25s" style-hover="transform:translateY(-5px);border-color:rgba(124,58,237,.4)">
+              <div style="width:62px;height:78px;border-radius:9px;background:{{ e.grad }};display:grid;place-items:center;font-size:28px;margin-bottom:16px;box-shadow:0 10px 24px rgba(0,0,0,.4)">{{ e.icon }}</div>
+              <h3 style="font-family:'Sora';font-weight:700;font-size:16px;color:#fff;line-height:1.3;margin-bottom:7px">{{ e.title }}</h3>
+              <p style="font-size:12.5px;color:#9a9ab0;line-height:1.5;margin-bottom:16px;flex:1">{{ e.desc }}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto">
+                <span style="font-family:'Sora';font-weight:800;font-size:16px;color:{{ e.priceColor }}">{{ e.priceFmt }}</span>
+                <button onClick="{{ e.getAction }}" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-weight:700;font-size:13px;padding:8px 14px;border-radius:10px;cursor:pointer" style-hover="background:var(--ac1);border-color:transparent">{{ e.getLabel }}</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT / WHY -->
+    <section style="padding:70px 28px">
+      <div style="max-width:1240px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:48px">
+          <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(28px,3.4vw,40px);color:#fff;letter-spacing:-1.2px;margin-bottom:12px">{{ t.about.title }}</h2>
+          <p style="color:#9a9ab0;font-size:17px;max-width:560px;margin:0 auto">{{ t.about.sub }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+          <sc-for list="{{ features }}" as="f" hint-placeholder-count="4">
+            <div style="padding:28px 22px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08)">
+              <div style="width:52px;height:52px;border-radius:14px;background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.3);display:grid;place-items:center;font-size:24px;margin-bottom:18px">{{ f.icon }}</div>
+              <h3 style="font-family:'Sora';font-weight:700;font-size:17px;color:#fff;margin-bottom:9px">{{ f.title }}</h3>
+              <p style="font-size:13.5px;color:#9a9ab0;line-height:1.6">{{ f.desc }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONSULTING CTA -->
+    <section style="padding:30px 28px 70px">
+      <div style="max-width:1240px;margin:0 auto;position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(120deg,rgba(124,58,237,.22),rgba(37,99,235,.18));border:1px solid rgba(124,58,237,.3);padding:56px 48px">
+        <div style="position:absolute;top:-40px;right:-20px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(30px);pointer-events:none"></div>
+        <div style="position:relative;max-width:640px">
+          <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,38px);color:#fff;letter-spacing:-1px;line-height:1.1;margin-bottom:16px">{{ t.consultHome.title }}</h2>
+          <p style="color:#cdcde0;font-size:17px;line-height:1.6;margin-bottom:28px">{{ t.consultHome.sub }}</p>
+          <button onClick="{{ goConsulting }}" style="background:#fff;border:none;color:#111;font-weight:800;font-size:16px;padding:15px 30px;border-radius:13px;cursor:pointer" style-hover="transform:translateY(-2px)">{{ t.consultHome.cta }} →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section style="padding:60px 28px">
+      <div style="max-width:900px;margin:0 auto;text-align:center">
+        <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,38px);color:#fff;letter-spacing:-1px;margin-bottom:10px">{{ t.testi.title }}</h2>
+        <p style="color:#9a9ab0;font-size:16px;margin-bottom:40px">{{ t.testi.sub }}</p>
+        <div style="position:relative;border-radius:24px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:48px 44px">
+          <div style="font-family:'Sora';font-size:64px;line-height:0;color:var(--ac1);opacity:.5;height:30px">“</div>
+          <p style="font-size:clamp(18px,2.2vw,24px);line-height:1.5;color:#eaeaf4;font-weight:500;margin-bottom:28px;text-wrap:pretty">{{ testimonial.q }}</p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:13px">
+            <span style="width:48px;height:48px;border-radius:50%;background:{{ testimonial.grad }};display:grid;place-items:center;font-weight:800;color:#fff;font-size:16px">{{ testimonial.av }}</span>
+            <div style="text-align:left">
+              <div style="font-weight:700;color:#fff;font-size:15px">{{ testimonial.name }}</div>
+              <div style="font-size:13px;color:#8a8aa3">{{ testimonial.role }}</div>
+            </div>
+          </div>
+          <button onClick="{{ testiPrev }}" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;font-size:16px" style-hover="background:rgba(255,255,255,.14)">‹</button>
+          <button onClick="{{ testiNext }}" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;font-size:16px" style-hover="background:rgba(255,255,255,.14)">›</button>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:24px">
+          <sc-for list="{{ testiDots }}" as="d" hint-placeholder-count="5">
+            <button onClick="{{ d.go }}" style="height:8px;width:{{ d.w }};border-radius:100px;background:{{ d.bg }};border:none;cursor:pointer;transition:all .3s;padding:0"></button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="padding:60px 28px">
+      <div style="max-width:820px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:38px">
+          <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,38px);color:#fff;letter-spacing:-1px;margin-bottom:10px">{{ t.faq.title }}</h2>
+          <p style="color:#9a9ab0;font-size:16px">{{ t.faq.sub }}</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="6">
+            <div onClick="{{ f.toggle }}" style="border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:20px 22px;cursor:pointer" style-hover="border-color:rgba(124,58,237,.4)">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                <span style="font-family:'Sora';font-weight:600;font-size:16px;color:#fff">{{ f.q }}</span>
+                <span style="font-size:22px;color:var(--ac1);font-weight:400;line-height:1">{{ f.sign }}</span>
+              </div>
+              <sc-if value="{{ f.open }}" hint-placeholder-val="{{ true }}">
+                <p style="font-size:14.5px;color:#9a9ab0;line-height:1.65;margin-top:14px">{{ f.a }}</p>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" style="padding:60px 28px 90px;scroll-margin-top:90px">
+      <div style="max-width:680px;margin:0 auto;text-align:center">
+        <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,38px);color:#fff;letter-spacing:-1px;margin-bottom:10px">{{ t.contact.title }}</h2>
+        <p style="color:#9a9ab0;font-size:16px;margin-bottom:34px">{{ t.contact.sub }}</p>
+        <sc-if value="{{ sent }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:40px;border-radius:18px;background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.4);color:#6ee7b7;font-size:16px;font-weight:600">✓ {{ t.contact.sent }}</div>
+        </sc-if>
+        <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+        <form onSubmit="{{ sendContact }}" style="text-align:left;display:flex;flex-direction:column;gap:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <input required placeholder="{{ t.contact.name }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+            <input required type="email" placeholder="{{ t.contact.email }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          </div>
+          <input placeholder="{{ t.contact.company }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          <textarea required rows="4" placeholder="{{ t.contact.msg }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none;resize:vertical;font-family:inherit" style-focus="border-color:var(--ac1)"></textarea>
+          <button type="submit" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:15px;padding:15px;border-radius:12px;cursor:pointer;box-shadow:0 12px 30px var(--acGlow)" style-hover="filter:brightness(1.1)">{{ t.contact.send }}</button>
+        </form>
+        </sc-if>
+      </div>
+    </section>
+
+  </div>
+  </sc-if>
+
+  <!-- ===================== CATALOG ===================== -->
+  <sc-if value="{{ isCatalog }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Catalog">
+    <section style="position:relative;overflow:hidden;padding:56px 28px 32px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="position:absolute;top:-80px;right:10%;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(40px);pointer-events:none"></div>
+      <div style="position:relative;max-width:1240px;margin:0 auto">
+        <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(30px,4vw,46px);color:#fff;letter-spacing:-1.5px;margin-bottom:12px">{{ t.cat.title }}</h1>
+        <p style="color:#9a9ab0;font-size:17px;max-width:560px">{{ t.cat.sub }}</p>
+      </div>
+    </section>
+    <section style="padding:30px 28px 90px">
+      <div style="max-width:1240px;margin:0 auto">
+        <!-- toolbar -->
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+          <div style="position:relative;flex:1;min-width:240px">
+            <span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.5">🔍</span>
+            <input value="{{ q }}" onInput="{{ setQ }}" placeholder="{{ t.cat.search }}" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px 13px 42px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          </div>
+          <select value="{{ sort }}" onChange="{{ setSort }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px;color:#fff;font-size:14px;outline:none;cursor:pointer">
+            <sc-for list="{{ sortOptions }}" as="o" hint-placeholder-count="5">
+              <option value="{{ o.v }}" style="background:#12121c">{{ o.l }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+          <sc-for list="{{ catChips }}" as="c" hint-placeholder-count="7">
+            <button onClick="{{ c.set }}" style="background:{{ c.bg }};color:{{ c.col }};border:1px solid {{ c.bd }};font-size:13px;font-weight:600;padding:8px 15px;border-radius:100px;cursor:pointer;transition:all .2s">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:30px">
+          <sc-for list="{{ levelChips }}" as="l" hint-placeholder-count="4">
+            <button onClick="{{ l.set }}" style="background:{{ l.bg }};color:{{ l.col }};border:1px solid {{ l.bd }};font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;cursor:pointer;transition:all .2s">{{ l.label }}</button>
+          </sc-for>
+        </div>
+        <div style="color:#8a8aa3;font-size:14px;margin-bottom:22px">{{ filteredCount }} {{ t.cat.results }}</div>
+
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ true }}">
+          <div style="text-align:center;padding:70px 20px;color:#8a8aa3">
+            <div style="font-size:40px;margin-bottom:14px">🔎</div>
+            <div style="font-weight:600;color:#cfcfe2;margin-bottom:18px">{{ t.cat.none }}</div>
+            <button onClick="{{ clearFilters }}" style="background:var(--ac1);border:none;color:#fff;font-weight:700;font-size:14px;padding:11px 22px;border-radius:11px;cursor:pointer">{{ t.cat.clear }}</button>
+          </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+          <sc-for list="{{ filtered }}" as="c" hint-placeholder-count="6">
+            <div onClick="{{ c.view }}" style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);overflow:hidden;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s;display:flex;flex-direction:column" style-hover="transform:translateY(-6px);border-color:rgba(124,58,237,.5);box-shadow:0 20px 50px rgba(0,0,0,.4)">
+              <div style="position:relative;height:158px;background:{{ c.grad }};overflow:hidden">
+                <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 80% 20%,rgba(255,255,255,.25),transparent 45%),linear-gradient(0deg,rgba(0,0,0,.35),transparent 60%)"></div>
+                <div style="position:absolute;inset:0;display:grid;place-items:center;font-size:48px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3))">{{ c.icon }}</div>
+                <span style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);color:#fff;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:100px">{{ c.cat }}</span>
+                <sc-if value="{{ c.hasTag }}" hint-placeholder-val="{{ true }}">
+                  <span style="position:absolute;top:12px;right:12px;background:#fff;color:#111;font-size:11px;font-weight:800;padding:5px 10px;border-radius:100px">{{ c.tag }}</span>
+                </sc-if>
+              </div>
+              <div style="padding:18px;display:flex;flex-direction:column;flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+                  <span style="font-size:12px;font-weight:600;color:#8a8aa3">{{ c.levelLabel }}</span>
+                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                </div>
+                <h3 style="font-family:'Sora';font-weight:700;font-size:17px;color:#fff;line-height:1.3;margin-bottom:8px;min-height:44px">{{ c.title }}</h3>
+                <p style="font-size:13px;color:#9a9ab0;line-height:1.5;margin-bottom:16px;flex:1">{{ c.desc }}</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto">
+                  <div style="display:flex;align-items:baseline;gap:8px">
+                    <span style="font-family:'Sora';font-weight:800;font-size:19px;color:#fff">{{ c.priceFmt }}</span>
+                    <sc-if value="{{ c.hasOld }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;color:#6a6a85;text-decoration:line-through">{{ c.oldFmt }}</span></sc-if>
+                  </div>
+                  <button onClick="{{ c.addClick }}" style="background:rgba(124,58,237,.16);border:1px solid rgba(124,58,237,.4);color:#cbb6ff;font-weight:700;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap" style-hover="background:var(--ac1);color:#fff">+ {{ t.courses.add }}</button>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <!-- ===================== E-BOOKS CATALOG ===================== -->
+  <sc-if value="{{ isEbooks }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="E-books">
+    <section style="position:relative;overflow:hidden;padding:56px 28px 32px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="position:absolute;top:-80px;right:10%;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(40px);pointer-events:none"></div>
+      <div style="position:relative;max-width:1240px;margin:0 auto">
+        <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(30px,4vw,46px);color:#fff;letter-spacing:-1.5px;margin-bottom:12px">{{ t.ebooks.catTitle }}</h1>
+        <p style="color:#9a9ab0;font-size:17px;max-width:580px">{{ t.ebooks.catSub }}</p>
+      </div>
+    </section>
+    <section style="padding:30px 28px 90px">
+      <div style="max-width:1240px;margin:0 auto">
+        <div style="position:relative;max-width:440px;margin-bottom:20px">
+          <span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.5">🔍</span>
+          <input value="{{ ebq }}" onInput="{{ setEbq }}" placeholder="{{ t.ebooks.search }}" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px 13px 42px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:26px">
+          <sc-for list="{{ ebChips }}" as="c" hint-placeholder-count="7">
+            <button onClick="{{ c.set }}" style="background:{{ c.bg }};color:{{ c.col }};border:1px solid {{ c.bd }};font-size:13px;font-weight:600;padding:8px 15px;border-radius:100px;cursor:pointer;transition:all .2s">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="color:#8a8aa3;font-size:14px;margin-bottom:22px">{{ ebCount }} {{ t.ebooks.results }}</div>
+
+        <sc-if value="{{ ebNoResults }}" hint-placeholder-val="{{ true }}">
+          <div style="text-align:center;padding:70px 20px;color:#8a8aa3">
+            <div style="font-size:40px;margin-bottom:14px">🔎</div>
+            <div style="font-weight:600;color:#cfcfe2;margin-bottom:18px">{{ t.cat.none }}</div>
+            <button onClick="{{ ebClear }}" style="background:var(--ac1);border:none;color:#fff;font-weight:700;font-size:14px;padding:11px 22px;border-radius:11px;cursor:pointer">{{ t.cat.clear }}</button>
+          </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+          <sc-for list="{{ filteredEbooks }}" as="e" hint-placeholder-count="8">
+            <div style="border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);overflow:hidden;display:flex;flex-direction:column;transition:transform .25s,border-color .25s" style-hover="transform:translateY(-6px);border-color:rgba(124,58,237,.45)">
+              <div style="position:relative;height:150px;background:{{ e.grad }};display:grid;place-items:center;overflow:hidden">
+                <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 78% 22%,rgba(255,255,255,.25),transparent 48%),linear-gradient(0deg,rgba(0,0,0,.32),transparent 60%)"></div>
+                <div style="width:78px;height:100px;border-radius:8px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:34px;box-shadow:0 14px 30px rgba(0,0,0,.35)">{{ e.icon }}</div>
+                <span style="position:absolute;top:11px;left:11px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px">{{ e.cat }}</span>
+                <sc-if value="{{ e.isFree }}" hint-placeholder-val="{{ true }}">
+                  <span style="position:absolute;top:11px;right:11px;background:#6ee7b7;color:#063;font-size:11px;font-weight:800;padding:4px 10px;border-radius:100px">{{ t.ebooks.free }}</span>
+                </sc-if>
+              </div>
+              <div style="padding:17px;display:flex;flex-direction:column;flex:1">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px;color:#8a8aa3">
+                  <span style="color:#fbbf24;font-weight:700">★ {{ e.ratingFmt }}</span>
+                  <span>· {{ e.pages }} {{ t.ebooks.pages }}</span>
+                </div>
+                <h3 style="font-family:'Sora';font-weight:700;font-size:15.5px;color:#fff;line-height:1.3;margin-bottom:7px;min-height:40px">{{ e.title }}</h3>
+                <p style="font-size:12.5px;color:#9a9ab0;line-height:1.5;margin-bottom:14px;flex:1">{{ e.desc }}</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto">
+                  <div style="display:flex;align-items:baseline;gap:7px">
+                    <span style="font-family:'Sora';font-weight:800;font-size:17px;color:{{ e.priceColor }}">{{ e.priceFmt }}</span>
+                    <sc-if value="{{ e.hasOld }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#6a6a85;text-decoration:line-through">{{ e.oldFmt }}</span></sc-if>
+                  </div>
+                  <button onClick="{{ e.getAction }}" style="background:rgba(124,58,237,.16);border:1px solid rgba(124,58,237,.4);color:#cbb6ff;font-weight:700;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap" style-hover="background:var(--ac1);color:#fff">{{ e.getLabel }}</button>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <!-- ===================== DETAIL ===================== -->
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Course detail">
+    <section style="position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="position:absolute;inset:0;background:{{ detail.grad }};opacity:.12"></div>
+      <div style="position:relative;max-width:1240px;margin:0 auto;padding:28px 28px 0">
+        <button onClick="{{ goCatalog }}" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#cfcfe2;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:10px;cursor:pointer;margin-bottom:26px" style-hover="background:rgba(255,255,255,.12)">‹ {{ t.detail.back }}</button>
+      </div>
+    </section>
+    <section style="padding:36px 28px 90px">
+      <div style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr;gap:44px;align-items:start">
+        <!-- main -->
+        <div>
+          <div style="display:flex;gap:9px;margin-bottom:16px">
+            <span style="background:rgba(124,58,237,.16);border:1px solid rgba(124,58,237,.4);color:#cbb6ff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:100px">{{ detail.cat }}</span>
+            <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9a9ab0;font-size:12px;font-weight:600;padding:5px 12px;border-radius:100px">{{ detail.levelLabel }}</span>
+          </div>
+          <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(28px,3.6vw,42px);color:#fff;letter-spacing:-1.2px;line-height:1.1;margin-bottom:16px">{{ detail.title }}</h1>
+          <p style="color:#b0b0c6;font-size:17px;line-height:1.6;margin-bottom:20px">{{ detail.desc }}</p>
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;color:#9a9ab0;font-size:14px;margin-bottom:34px">
+            <span style="color:#fbbf24;font-weight:700">★ {{ detail.ratingFmt }} <span style="color:#8a8aa3;font-weight:500">({{ detail.reviewsFmt }})</span></span>
+            <span>📚 {{ detail.totalLessons }} {{ t.courses.lessons }}</span>
+            <span>⏱ {{ detail.hoursFmt }}h</span>
+            <span>👥 {{ detail.studentsFmt }} {{ t.courses.students }}</span>
+          </div>
+
+          <!-- learn -->
+          <div style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:28px;margin-bottom:26px">
+            <h2 style="font-family:'Sora';font-weight:700;font-size:20px;color:#fff;margin-bottom:18px">{{ t.detail.learn }}</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+              <sc-for list="{{ detail.learn }}" as="p" hint-placeholder-count="6">
+                <div style="display:flex;gap:11px;align-items:flex-start">
+                  <span style="color:#6ee7b7;font-size:15px;margin-top:1px">✓</span>
+                  <span style="color:#c8c8da;font-size:14px;line-height:1.5">{{ p }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- curriculum -->
+          <h2 style="font-family:'Sora';font-weight:700;font-size:20px;color:#fff;margin-bottom:16px">{{ t.detail.curriculum }}</h2>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:34px">
+            <sc-for list="{{ detail.curriculum }}" as="m" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:13px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">
+                <span style="font-family:'Sora';font-weight:800;font-size:15px;color:var(--ac1);min-width:26px">0{{ m.i }}</span>
+                <span style="flex:1;font-weight:600;color:#fff;font-size:15px">{{ m.title }}</span>
+                <span style="color:#8a8aa3;font-size:13px">{{ m.lessons }} {{ t.courses.lessons }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- instructor -->
+          <div style="display:flex;gap:16px;align-items:center;padding:22px;border-radius:16px;background:linear-gradient(120deg,rgba(124,58,237,.1),rgba(37,99,235,.08));border:1px solid rgba(255,255,255,.08)">
+            <span style="width:60px;height:60px;border-radius:50%;background:{{ detail.grad }};display:grid;place-items:center;font-weight:800;color:#fff;font-size:22px;flex-shrink:0">{{ detail.icon }}</span>
+            <div>
+              <div style="color:#8a8aa3;font-size:13px;margin-bottom:2px">{{ t.detail.by }}</div>
+              <div style="font-family:'Sora';font-weight:700;color:#fff;font-size:18px">{{ detail.instructor }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- purchase card -->
+        <div style="position:sticky;top:92px">
+          <div style="border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4)">
+            <div style="height:170px;background:{{ detail.grad }};position:relative;display:grid;place-items:center">
+              <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 75% 25%,rgba(255,255,255,.3),transparent 50%)"></div>
+              <span style="font-size:58px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))">{{ detail.icon }}</span>
+              <sc-if value="{{ detail.hasOld }}" hint-placeholder-val="{{ true }}">
+                <span style="position:absolute;top:14px;right:14px;background:#fff;color:#111;font-size:12px;font-weight:800;padding:6px 12px;border-radius:100px">{{ detail.discount }}% {{ t.detail.off }}</span>
+              </sc-if>
+            </div>
+            <div style="padding:24px">
+              <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:20px">
+                <span style="font-family:'Sora';font-weight:800;font-size:30px;color:#fff">{{ detail.priceFmt }}</span>
+                <sc-if value="{{ detail.hasOld }}" hint-placeholder-val="{{ true }}"><span style="font-size:16px;color:#6a6a85;text-decoration:line-through">{{ detail.oldFmt }}</span></sc-if>
+              </div>
+              <button onClick="{{ detail.add }}" style="width:100%;background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:16px;padding:15px;border-radius:13px;cursor:pointer;box-shadow:0 12px 30px var(--acGlow);margin-bottom:11px" style-hover="filter:brightness(1.1)">{{ t.detail.enroll }}</button>
+              <button onClick="{{ detail.add }}" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-weight:700;font-size:15px;padding:13px;border-radius:13px;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">+ {{ t.detail.add }}</button>
+              <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:22px;padding-top:20px">
+                <div style="font-family:'Sora';font-weight:700;color:#fff;font-size:14px;margin-bottom:14px">{{ t.detail.includes }}</div>
+                <div style="display:flex;flex-direction:column;gap:11px">
+                  <sc-for list="{{ detail.includes }}" as="inc" hint-placeholder-count="5">
+                    <div style="display:flex;gap:11px;align-items:center;color:#b0b0c6;font-size:13.5px">
+                      <span style="color:var(--ac1)">✓</span>{{ inc }}
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- related -->
+      <div style="max-width:1240px;margin:60px auto 0">
+        <h2 style="font-family:'Sora';font-weight:700;font-size:24px;color:#fff;margin-bottom:24px">{{ t.detail.related }}</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+          <sc-for list="{{ detail.related }}" as="c" hint-placeholder-count="3">
+            <div onClick="{{ c.view }}" style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);overflow:hidden;cursor:pointer;transition:transform .25s,border-color .25s" style-hover="transform:translateY(-6px);border-color:rgba(124,58,237,.5)">
+              <div style="position:relative;height:130px;background:{{ c.grad }};display:grid;place-items:center">
+                <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 80% 20%,rgba(255,255,255,.22),transparent 45%)"></div>
+                <span style="font-size:40px">{{ c.icon }}</span>
+              </div>
+              <div style="padding:16px">
+                <h3 style="font-family:'Sora';font-weight:700;font-size:15.5px;color:#fff;line-height:1.3;margin-bottom:10px;min-height:40px">{{ c.title }}</h3>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-family:'Sora';font-weight:800;font-size:16px;color:#fff">{{ c.priceFmt }}</span>
+                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <!-- ===================== CONSULTING ===================== -->
+  <sc-if value="{{ isConsulting }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Consulting">
+    <section style="position:relative;overflow:hidden;padding:80px 28px 56px">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:54px 54px;-webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,#000,transparent 80%);mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,#000,transparent 80%)"></div>
+      <div style="position:absolute;top:-40px;left:20%;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(42px);pointer-events:none"></div>
+      <div style="position:relative;max-width:780px;margin:0 auto;text-align:center">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:600;color:#cbb6ff;margin-bottom:22px">🧭 {{ t.consulting.badge }}</div>
+        <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(32px,4.6vw,56px);color:#fff;letter-spacing:-2px;line-height:1.05;margin-bottom:20px">{{ t.consulting.title }}</h1>
+        <p style="color:#a6a6c0;font-size:18px;line-height:1.6;max-width:600px;margin:0 auto 30px">{{ t.consulting.sub }}</p>
+        <button onClick="{{ scrollContact }}" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:16px;padding:15px 30px;border-radius:13px;cursor:pointer;box-shadow:0 14px 36px var(--acGlow)" style-hover="filter:brightness(1.1);transform:translateY(-2px)">{{ t.consulting.cta }} →</button>
+      </div>
+    </section>
+
+    <!-- tiers -->
+    <section style="padding:30px 28px 60px">
+      <div style="max-width:1180px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:42px">
+          <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,36px);color:#fff;letter-spacing:-1px;margin-bottom:10px">{{ t.consulting.pickT }}</h2>
+          <p style="color:#9a9ab0;font-size:16px">{{ t.consulting.pickS }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start">
+          <sc-for list="{{ consult }}" as="c" hint-placeholder-count="3">
+            <div style="position:relative;border-radius:20px;background:{{ c.cardBg }};border:1px solid {{ c.cardBd }};padding:30px 26px;display:flex;flex-direction:column;{{ c.lift }}">
+              <sc-if value="{{ c.featured }}" hint-placeholder-val="{{ true }}">
+                <span style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;font-size:11.5px;font-weight:800;padding:6px 16px;border-radius:100px;box-shadow:0 8px 20px var(--acGlow);white-space:nowrap">{{ t.consulting.most }}</span>
+              </sc-if>
+              <div style="width:54px;height:54px;border-radius:15px;background:rgba(124,58,237,.16);border:1px solid rgba(124,58,237,.34);display:grid;place-items:center;font-size:26px;margin-bottom:18px">{{ c.icon }}</div>
+              <h3 style="font-family:'Sora';font-weight:700;font-size:21px;color:#fff;margin-bottom:5px">{{ c.name }}</h3>
+              <p style="color:#9a9ab0;font-size:13.5px;margin-bottom:18px">{{ c.tagline }}</p>
+              <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:22px">
+                <span style="font-family:'Sora';font-weight:800;font-size:28px;color:#fff">{{ c.priceFmt }}</span>
+                <sc-if value="{{ c.showUnit }}" hint-placeholder-val="{{ true }}"><span style="color:#8a8aa3;font-size:14px">{{ c.unit }}</span></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:26px;flex:1">
+                <sc-for list="{{ c.feats }}" as="f" hint-placeholder-count="4">
+                  <div style="display:flex;gap:11px;align-items:flex-start;color:#c8c8da;font-size:14px;line-height:1.4">
+                    <span style="color:#6ee7b7;margin-top:1px">✓</span>{{ f }}
+                  </div>
+                </sc-for>
+              </div>
+              <button onClick="{{ c.book }}" style="width:100%;background:{{ c.btnBg }};border:{{ c.btnBd }};color:#fff;font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer" style-hover="filter:brightness(1.1)">{{ c.btnLabel }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- process -->
+    <section style="padding:50px 28px 90px">
+      <div style="max-width:1180px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:46px">
+          <h2 style="font-family:'Sora';font-weight:800;font-size:clamp(26px,3.2vw,36px);color:#fff;letter-spacing:-1px;margin-bottom:10px">{{ t.consulting.procT }}</h2>
+          <p style="color:#9a9ab0;font-size:16px">{{ t.consulting.procS }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+          <sc-for list="{{ process }}" as="p" hint-placeholder-count="4">
+            <div style="padding:28px 22px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);position:relative">
+              <div style="font-family:'Sora';font-weight:800;font-size:34px;background:linear-gradient(120deg,var(--ac1),var(--ac2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:14px;letter-spacing:-1px">{{ p.n }}</div>
+              <h3 style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff;margin-bottom:9px">{{ p.title }}</h3>
+              <p style="font-size:13.5px;color:#9a9ab0;line-height:1.6">{{ p.desc }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <!-- ===================== CHECKOUT ===================== -->
+  <sc-if value="{{ isCheckout }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Checkout" style="min-height:80vh">
+    <!-- success -->
+    <sc-if value="{{ orderPlaced }}" hint-placeholder-val="{{ true }}">
+      <div style="max-width:560px;margin:0 auto;padding:90px 28px;text-align:center">
+        <div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#059669,#0891b2);display:grid;place-items:center;font-size:42px;margin:0 auto 28px;box-shadow:0 16px 44px rgba(5,150,105,.4)">✓</div>
+        <h1 style="font-family:'Sora';font-weight:800;font-size:34px;color:#fff;letter-spacing:-1px;margin-bottom:14px">{{ t.checkout.doneT }}</h1>
+        <p style="color:#a6a6c0;font-size:17px;line-height:1.6;margin-bottom:30px">{{ t.checkout.doneS }}</p>
+        <button onClick="{{ resetOrder }}" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:16px;padding:15px 32px;border-radius:13px;cursor:pointer;box-shadow:0 12px 30px var(--acGlow)" style-hover="filter:brightness(1.1)">{{ t.checkout.doneBtn }} →</button>
+      </div>
+    </sc-if>
+
+    <!-- empty -->
+    <sc-if value="{{ checkoutEmpty }}" hint-placeholder-val="{{ true }}">
+      <div style="max-width:520px;margin:0 auto;padding:100px 28px;text-align:center">
+        <div style="font-size:52px;margin-bottom:18px">🛒</div>
+        <h1 style="font-family:'Sora';font-weight:800;font-size:28px;color:#fff;margin-bottom:10px">{{ t.checkout.empty }}</h1>
+        <p style="color:#9a9ab0;font-size:16px;margin-bottom:26px">{{ t.checkout.emptySub }}</p>
+        <button onClick="{{ goCatalog }}" style="background:var(--ac1);border:none;color:#fff;font-weight:700;font-size:15px;padding:13px 26px;border-radius:12px;cursor:pointer">{{ t.checkout.browse }} →</button>
+      </div>
+    </sc-if>
+
+    <!-- form -->
+    <sc-if value="{{ checkoutActive }}" hint-placeholder-val="{{ true }}">
+    <section style="padding:54px 28px 90px">
+      <div style="max-width:1080px;margin:0 auto">
+        <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(28px,3.6vw,40px);color:#fff;letter-spacing:-1.2px;margin-bottom:34px">{{ t.checkout.title }}</h1>
+        <form onSubmit="{{ startCheckout }}" style="display:grid;grid-template-columns:1.5fr 1fr;gap:34px;align-items:start">
+          <!-- billing -->
+          <div>
+            <div style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:28px;margin-bottom:22px">
+              <h2 style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff;margin-bottom:20px">{{ t.checkout.billing }}</h2>
+              <div style="display:flex;flex-direction:column;gap:15px">
+                <input required name="fullname" placeholder="{{ t.checkout.name }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:13px 15px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
+                  <input required name="email" type="email" placeholder="{{ t.checkout.email }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:13px 15px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+                  <input required name="phone" placeholder="{{ t.checkout.phone }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:13px 15px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+                </div>
+              </div>
+            </div>
+            <div style="border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:28px">
+              <h2 style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff;margin-bottom:18px">{{ t.checkout.pay }}</h2>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ payMethods }}" as="p" hint-placeholder-count="3">
+                  <div onClick="{{ p.set }}" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:13px;background:{{ p.bg }};border:1px solid {{ p.bd }};cursor:pointer;transition:all .2s">
+                    <span style="font-size:22px">{{ p.icon }}</span>
+                    <span style="flex:1;font-weight:600;color:#fff;font-size:14.5px">{{ p.l }}</span>
+                    <span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ p.dot }};display:grid;place-items:center"><span style="width:9px;height:9px;border-radius:50%;background:{{ p.dotFill }}"></span></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- summary -->
+          <div style="position:sticky;top:92px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);padding:26px">
+            <h2 style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff;margin-bottom:18px">{{ t.checkout.summary }}</h2>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;max-height:260px;overflow-y:auto">
+              <sc-for list="{{ cartItems }}" as="item" hint-placeholder-count="2">
+                <div style="display:flex;gap:12px;align-items:center">
+                  <div style="width:46px;height:46px;border-radius:10px;flex-shrink:0;background:{{ item.grad }};display:grid;place-items:center;font-size:18px">{{ item.icon }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-weight:600;font-size:13px;color:#fff;line-height:1.3">{{ item.title }}</div>
+                    <div style="font-size:11.5px;color:#8a8aa3">×{{ item.qty }}</div>
+                  </div>
+                  <span style="font-weight:700;font-size:13px;color:#cbb6ff;white-space:nowrap">{{ item.priceFmt }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:16px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+              <div style="display:flex;justify-content:space-between;color:#9a9ab0;font-size:14px"><span>{{ t.checkout.subtotal }}</span><span>{{ subtotalFmt }}</span></div>
+              <div style="display:flex;justify-content:space-between;color:#9a9ab0;font-size:14px"><span>{{ t.checkout.tax }}</span><span>{{ taxFmt }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:4px"><span style="color:#fff;font-weight:600">{{ t.checkout.total }}</span><span style="font-family:'Sora';font-weight:800;font-size:22px;color:#fff">{{ totalFmt }}</span></div>
+            </div>
+            <button type="submit" style="width:100%;background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:16px;padding:15px;border-radius:13px;cursor:pointer;box-shadow:0 12px 30px var(--acGlow)" style-hover="filter:brightness(1.1)">{{ checkoutBtnLabel }}</button>
+            <sc-if value="{{ hasCheckoutMsg }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:12px;background:rgba(220,38,38,.12);border:1px solid rgba(248,113,113,.35);color:#fca5a5;font-size:13px;line-height:1.45;padding:11px 14px;border-radius:11px">{{ checkoutMsg }}</div>
+            </sc-if>
+            <div style="display:flex;align-items:center;justify-content:center;gap:7px;color:#6a6a85;font-size:12px;margin-top:14px">🔒 {{ t.checkout.secure }} · Midtrans</div>
+          </div>
+        </form>
+      </div>
+    </section>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ===================== LOGIN ===================== -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Login" style="min-height:calc(100vh - 72px);display:grid;grid-template-columns:1fr 1fr">
+    <!-- brand panel -->
+    <div style="position:relative;overflow:hidden;background:linear-gradient(150deg,rgba(124,58,237,.3),rgba(37,99,235,.18));border-right:1px solid rgba(255,255,255,.08);padding:60px;display:flex;flex-direction:column;justify-content:center">
+      <div style="position:absolute;top:-60px;right:-40px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,var(--acGlow),transparent 70%);filter:blur(50px);pointer-events:none"></div>
+      <div style="position:relative;max-width:420px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:34px">
+          <span style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--ac1),var(--ac2));display:grid;place-items:center;font-family:'Sora';font-weight:800;color:#fff;font-size:22px">P</span>
+          <span style="font-family:'Sora';font-weight:700;font-size:22px;color:#fff">Pro<span style="color:#b69bff">AI</span>cademy</span>
+        </div>
+        <h2 style="font-family:'Sora';font-weight:800;font-size:34px;color:#fff;letter-spacing:-1.2px;line-height:1.15;margin-bottom:18px">{{ t.hero.t1 }} {{ t.hero.t2 }}</h2>
+        <p style="color:#cdcde0;font-size:16px;line-height:1.6;margin-bottom:30px">{{ t.hero.sub }}</p>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:12px;align-items:center;color:#e0e0ee;font-size:15px">⭐ <span>{{ t.hero.trust }}</span></div>
+          <div style="display:flex;gap:12px;align-items:center;color:#e0e0ee;font-size:15px">🎓 <span>{{ t.detail.i1 }} · {{ t.detail.i2 }}</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- form -->
+    <div style="display:flex;align-items:center;justify-content:center;padding:50px 40px">
+      <div style="width:100%;max-width:400px">
+        <h1 style="font-family:'Sora';font-weight:800;font-size:30px;color:#fff;letter-spacing:-1px;margin-bottom:8px">{{ authTitle }}</h1>
+        <p style="color:#9a9ab0;font-size:15px;margin-bottom:28px">{{ authSub }}</p>
+        <form onSubmit="{{ authSubmit }}" style="display:flex;flex-direction:column;gap:15px">
+          <sc-if value="{{ hasAuthError }}" hint-placeholder-val="{{ true }}">
+            <div style="background:rgba(220,38,38,.12);border:1px solid rgba(248,113,113,.35);color:#fca5a5;font-size:13.5px;line-height:1.4;padding:11px 14px;border-radius:11px">{{ authError }}</div>
+          </sc-if>
+          <sc-if value="{{ isRegisterMode }}" hint-placeholder-val="{{ true }}">
+            <input required name="fullname" placeholder="{{ t.auth.name }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          </sc-if>
+          <input required name="email" type="email" placeholder="{{ t.auth.email }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          <input required name="password" type="password" placeholder="{{ t.auth.pass }}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:14px 16px;color:#fff;font-size:14.5px;outline:none" style-focus="border-color:var(--ac1)">
+          <sc-if value="{{ isLoginMode }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <label style="display:flex;align-items:center;gap:7px;color:#9a9ab0;cursor:pointer"><input type="checkbox" style="accent-color:var(--ac1)">{{ t.auth.remember }}</label>
+              <span style="color:#b69bff;cursor:pointer;font-weight:600">{{ t.auth.forgot }}</span>
+            </div>
+          </sc-if>
+          <button type="submit" style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:15px;padding:15px;border-radius:12px;cursor:pointer;box-shadow:0 12px 30px var(--acGlow);margin-top:4px" style-hover="filter:brightness(1.1)">{{ authBtnLabel }}</button>
+        </form>
+        <sc-if value="{{ showOAuth }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:14px;margin:24px 0;color:#6a6a85;font-size:13px"><span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>{{ t.auth.or }}<span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span></div>
+        <div style="display:flex;gap:12px">
+          <sc-if value="{{ googleEnabled }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ authGoogle }}" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:600;font-size:14px;padding:12px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px" style-hover="background:rgba(255,255,255,.1)">G Google</button>
+          </sc-if>
+          <sc-if value="{{ facebookEnabled }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ authFacebook }}" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:600;font-size:14px;padding:12px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px" style-hover="background:rgba(255,255,255,.1)">f Facebook</button>
+          </sc-if>
+        </div>
+        </sc-if>
+        <div style="text-align:center;margin-top:26px;color:#9a9ab0;font-size:14px">
+          {{ authSwitchText }} <button onClick="{{ authSwitch }}" style="background:none;border:none;color:#b69bff;font-weight:700;font-size:14px;cursor:pointer;padding:0">{{ authSwitchLink }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+      <rect width="400" height="400" rx="80" fill="#0d0d16"/>
+      <rect x="120" y="120" width="160" height="160" rx="46" fill="url(#tg)"/>
+      <text x="200" y="232" font-family="sans-serif" font-size="104" font-weight="800" fill="#fff" text-anchor="middle">P</text>
+    </svg>
+  </template>
+
+  <!-- ===================== FOOTER ===================== -->
+  <sc-if value="{{ showFooter }}" hint-placeholder-val="{{ true }}">
+  <footer style="border-top:1px solid rgba(255,255,255,.08);padding:56px 28px 36px;background:rgba(255,255,255,.015)">
+    <div style="max-width:1240px;margin:0 auto">
+      <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1.4fr;gap:40px;margin-bottom:44px">
+        <div>
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px">
+            <span style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--ac1),var(--ac2));display:grid;place-items:center;font-family:'Sora';font-weight:800;color:#fff;font-size:18px">P</span>
+            <span style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff">Pro<span style="color:#b69bff">AI</span>cademy</span>
+          </div>
+          <p style="color:#8a8aa3;font-size:14px;line-height:1.6;max-width:280px;margin-bottom:18px">{{ t.footer.tagline }}</p>
+          <div style="display:flex;gap:10px">
+            <span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;font-size:15px;cursor:pointer">𝕏</span>
+            <span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;font-size:15px;cursor:pointer">in</span>
+            <span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;font-size:15px;cursor:pointer">▶</span>
+            <span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;font-size:15px;cursor:pointer">◎</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Sora';font-weight:700;font-size:14px;color:#fff;margin-bottom:16px">{{ t.footer.explore }}</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <button onClick="{{ goCatalog }}" style="background:none;border:none;color:#9a9ab0;font-size:13.5px;cursor:pointer;text-align:left;padding:0" style-hover="color:#fff">{{ t.footer.l_courses }}</button>
+            <button onClick="{{ goEbooks }}" style="background:none;border:none;color:#9a9ab0;font-size:13.5px;cursor:pointer;text-align:left;padding:0" style-hover="color:#fff">{{ t.footer.l_ebooks }}</button>
+            <button onClick="{{ goConsulting }}" style="background:none;border:none;color:#9a9ab0;font-size:13.5px;cursor:pointer;text-align:left;padding:0" style-hover="color:#fff">{{ t.footer.l_consulting }}</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Sora';font-weight:700;font-size:14px;color:#fff;margin-bottom:16px">{{ t.footer.company }}</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <span style="color:#9a9ab0;font-size:13.5px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_about }}</span>
+            <span style="color:#9a9ab0;font-size:13.5px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_blog }}</span>
+            <span style="color:#9a9ab0;font-size:13.5px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_careers }}</span>
+            <span style="color:#9a9ab0;font-size:13.5px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_contact }}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Sora';font-weight:700;font-size:14px;color:#fff;margin-bottom:16px">{{ t.footer.news }}</div>
+          <div style="display:flex;gap:8px;margin-bottom:18px">
+            <input placeholder="you@email.com" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 13px;color:#fff;font-size:13.5px;outline:none;min-width:0" style-focus="border-color:var(--ac1)">
+            <button style="background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:13px;padding:0 16px;border-radius:10px;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.1)">{{ t.footer.sub }}</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px">
+            <span style="color:#9a9ab0;font-size:13px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_faq }}</span>
+            <span style="color:#9a9ab0;font-size:13px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_help }}</span>
+            <span style="color:#9a9ab0;font-size:13px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_terms }}</span>
+            <span style="color:#9a9ab0;font-size:13px;cursor:pointer" style-hover="color:#fff">{{ t.footer.l_privacy }}</span>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <span style="color:#6a6a85;font-size:13px">© 2026 ProAIcademy · Proacademy.id. {{ t.footer.rights }}</span>
+        <button onClick="{{ toggleLang }}" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9a9ab0;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer" style-hover="color:#fff">🌐 {{ langLabel }} · English / Indonesia</button>
+      </div>
+    </div>
+  </footer>
+  </sc-if>
+
+  <!-- CART DRAWER -->
+  <sc-if value="{{ cartOpen }}" hint-placeholder-val="{{ true }}">
+    <div onClick="{{ closeCart }}" style="position:fixed;inset:0;z-index:120;background:rgba(3,3,8,.65);backdrop-filter:blur(4px);animation:fadeUp .2s ease">
+      <div onClick="{{ stop }}" style="position:absolute;top:0;right:0;height:100%;width:420px;max-width:92vw;background:#0c0c16;border-left:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;box-shadow:-30px 0 80px rgba(0,0,0,.6)">
+        <div style="padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-family:'Sora';font-weight:700;font-size:18px;color:#fff">{{ t.cart.title }} <span style="color:#8a8aa3;font-weight:500">({{ cartCount }})</span></span>
+          <button onClick="{{ closeCart }}" style="background:rgba(255,255,255,.06);border:none;color:#cfcfe2;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px 24px">
+          <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ true }}">
+            <div style="text-align:center;padding:60px 10px;color:#8a8aa3">
+              <div style="font-size:42px;margin-bottom:14px">🛒</div>
+              <div style="font-weight:600;color:#cfcfe2;margin-bottom:6px">{{ t.cart.empty }}</div>
+              <div style="font-size:13px">{{ t.cart.emptySub }}</div>
+            </div>
+          </sc-if>
+          <sc-for list="{{ cartItems }}" as="item" hint-placeholder-count="2">
+            <div style="display:flex;gap:13px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+              <div style="width:64px;height:64px;border-radius:11px;flex-shrink:0;background:{{ item.grad }};display:grid;place-items:center;font-size:22px">{{ item.icon }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:13.5px;color:#fff;line-height:1.3;margin-bottom:3px">{{ item.title }}</div>
+                <div style="font-size:11.5px;color:#8a8aa3;margin-bottom:7px">{{ item.typeLabel }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border-radius:8px;padding:3px 4px">
+                    <button onClick="{{ item.dec }}" style="background:none;border:none;color:#cfcfe2;cursor:pointer;width:20px;height:20px;font-size:15px">−</button>
+                    <span style="font-size:13px;font-weight:700;color:#fff;min-width:14px;text-align:center">{{ item.qty }}</span>
+                    <button onClick="{{ item.inc }}" style="background:none;border:none;color:#cfcfe2;cursor:pointer;width:20px;height:20px;font-size:15px">+</button>
+                  </div>
+                  <span style="font-weight:700;font-size:13.5px;color:#b69bff">{{ item.priceFmt }}</span>
+                </div>
+              </div>
+              <button onClick="{{ item.remove }}" style="background:none;border:none;color:#6a6a85;cursor:pointer;font-size:13px;align-self:flex-start" style-hover="color:#ff6b6b">✕</button>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ cartHasItems }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:20px 24px;border-top:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+              <span style="color:#9a9ab0;font-size:14px">{{ t.cart.subtotal }}</span>
+              <span style="font-family:'Sora';font-weight:700;font-size:20px;color:#fff">{{ subtotalFmt }}</span>
+            </div>
+            <button onClick="{{ goCheckout }}" style="width:100%;background:linear-gradient(135deg,var(--ac1),var(--ac2));border:none;color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:11px;cursor:pointer;box-shadow:0 10px 26px var(--acGlow)" style-hover="filter:brightness(1.1)">{{ t.cart.checkout }} →</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;defaultLang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;id&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'id'&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;violet&quot;,&quot;azure&quot;,&quot;magenta&quot;,&quot;emerald&quot;],&quot;default&quot;:&quot;emerald&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+    const dl = (props && props.defaultLang) || 'en';
+    this.state = { lang: dl, page:'home', cartOpen:false, cart:[], detailId:'c1',
+      q:'', cat:'all', level:'all', sort:'popular', faqOpen:0, testi:0,
+      ebq:'', ebcat:'all',
+      orderPlaced:false, sent:false, authMode:'login', payMethod:'card',
+      catTab:'all',
+      user:null, authError:'', authLoading:false, dataReady:false,
+      providers:{google:false,facebook:false},
+      ownedEbooks:[], checkoutLoading:false, checkoutMsg:'',
+      guestOrders:[] };
+  }
+
+  // ---------- DATA ----------
+  COURSES = [
+    {id:'c1',cat:'Foundations',level:'Beginner',lessons:24,hours:6.5,rating:4.9,reviews:842,students:3200,price:299000,old:499000,icon:'🧠',grad:'linear-gradient(135deg,#7c3aed,#4f46e5)',instructor:'Dr. Rina Pratama',tagKey:'best',
+      title:{en:'AI Foundations: Zero to Confident',id:'Dasar AI: Dari Nol ke Mahir'},
+      desc:{en:'Understand how modern AI works and start using it with confidence — no coding required.',id:'Pahami cara kerja AI modern dan mulai gunakan dengan percaya diri — tanpa coding.'}},
+    {id:'c2',cat:'Prompt Engineering',level:'Intermediate',lessons:32,hours:8,rating:4.9,reviews:1204,students:5400,price:449000,old:649000,icon:'✍️',grad:'linear-gradient(135deg,#2563eb,#06b6d4)',instructor:'Andi Wijaya',tagKey:'hot',
+      title:{en:'Prompt Engineering Mastery',id:'Mahir Prompt Engineering'},
+      desc:{en:'Write prompts that get reliable, high-quality results from ChatGPT, Claude & Gemini.',id:'Tulis prompt yang menghasilkan output andal & berkualitas dari ChatGPT, Claude & Gemini.'}},
+    {id:'c3',cat:'Generative AI',level:'Beginner',lessons:20,hours:5,rating:4.8,reviews:530,students:2700,price:349000,old:499000,icon:'🎨',grad:'linear-gradient(135deg,#db2777,#7c3aed)',instructor:'Sarah Lin',tagKey:'new',
+      title:{en:'Generative AI for Content Creators',id:'AI Generatif untuk Kreator Konten'},
+      desc:{en:'Create images, video scripts and social content 10x faster with generative tools.',id:'Buat gambar, naskah video & konten sosial 10x lebih cepat dengan tools generatif.'}},
+    {id:'c4',cat:'AI Automation',level:'Intermediate',lessons:28,hours:7.5,rating:4.9,reviews:690,students:1980,price:549000,old:799000,icon:'⚡',grad:'linear-gradient(135deg,#059669,#0891b2)',instructor:'Budi Santoso',tagKey:'hot',
+      title:{en:'AI Automation with No-Code',id:'Otomatisasi AI Tanpa Coding'},
+      desc:{en:'Connect AI to your tools and automate real workflows with Make, n8n & Zapier.',id:'Hubungkan AI ke tools-mu dan otomatiskan alur kerja nyata dengan Make, n8n & Zapier.'}},
+    {id:'c5',cat:'AI for Business',level:'Beginner',lessons:18,hours:4.5,rating:4.8,reviews:410,students:2300,price:599000,old:899000,icon:'📈',grad:'linear-gradient(135deg,#4f46e5,#2563eb)',instructor:'Dr. Rina Pratama',tagKey:'best',
+      title:{en:'AI for Business Leaders',id:'AI untuk Pemimpin Bisnis'},
+      desc:{en:'Build an AI roadmap, spot high-ROI use cases and lead adoption in your team.',id:'Susun roadmap AI, temukan use case ber-ROI tinggi & pimpin adopsi di timmu.'}},
+    {id:'c6',cat:'Machine Learning',level:'Advanced',lessons:40,hours:12,rating:4.9,reviews:980,students:1500,price:799000,old:1199000,icon:'🤖',grad:'linear-gradient(135deg,#ea580c,#db2777)',instructor:'Andi Wijaya',tagKey:'',
+      title:{en:'Machine Learning Essentials',id:'Esensi Machine Learning'},
+      desc:{en:'Go hands-on with Python to build, train and evaluate real ML models.',id:'Praktik langsung dengan Python untuk membangun, melatih & mengevaluasi model ML.'}},
+    {id:'c7',cat:'Generative AI',level:'Advanced',lessons:36,hours:10,rating:5.0,reviews:520,students:1120,price:899000,old:1299000,icon:'🛠️',grad:'linear-gradient(135deg,#7c3aed,#db2777)',instructor:'Sarah Lin',tagKey:'new',
+      title:{en:'Building AI Agents',id:'Membangun AI Agent'},
+      desc:{en:'Design autonomous agents that plan, use tools and complete multi-step tasks.',id:'Rancang agent otonom yang merencanakan, memakai tools & menyelesaikan tugas kompleks.'}},
+    {id:'c8',cat:'Prompt Engineering',level:'Beginner',lessons:16,hours:4,rating:4.7,reviews:360,students:2600,price:249000,old:399000,icon:'💬',grad:'linear-gradient(135deg,#0891b2,#2563eb)',instructor:'Budi Santoso',tagKey:'',
+      title:{en:'ChatGPT for Everyday Productivity',id:'ChatGPT untuk Produktivitas Harian'},
+      desc:{en:'Save hours every week using AI for email, planning, research and writing.',id:'Hemat berjam-jam tiap minggu pakai AI untuk email, perencanaan, riset & menulis.'}},
+  ];
+  EBOOKS = [
+    {id:'eb1',cat:'Prompts',price:99000,old:149000,icon:'📕',grad:'linear-gradient(135deg,#7c3aed,#2563eb)',pages:120,rating:4.9,downloads:5400,title:{en:'The Prompt Playbook',id:'Buku Sakti Prompt'},desc:{en:'200+ copy-paste prompts for work & business.',id:'200+ prompt siap pakai untuk kerja & bisnis.'}},
+    {id:'eb2',cat:'Tools',price:79000,old:0,icon:'🧰',grad:'linear-gradient(135deg,#059669,#0891b2)',pages:64,rating:4.8,downloads:3100,title:{en:'100 AI Tools for Business',id:'100 Tools AI untuk Bisnis'},desc:{en:'A curated directory with use cases & pricing.',id:'Direktori terkurasi lengkap use case & harga.'}},
+    {id:'eb3',cat:'Career',price:0,old:0,icon:'🗺️',grad:'linear-gradient(135deg,#ea580c,#db2777)',pages:38,rating:4.9,downloads:8700,title:{en:'AI Career Roadmap 2026',id:'Roadmap Karier AI 2026'},desc:{en:'Free guide to landing an AI-powered role.',id:'Panduan gratis meraih karier berbasis AI.'}},
+    {id:'eb4',cat:'Productivity',price:89000,old:0,icon:'⚙️',grad:'linear-gradient(135deg,#2563eb,#06b6d4)',pages:88,rating:4.7,downloads:2400,title:{en:'Automate Your Workday',id:'Otomatiskan Hari Kerjamu'},desc:{en:'Templates to automate repetitive tasks.',id:'Template untuk otomatisasi tugas berulang.'}},
+    {id:'eb5',cat:'Productivity',price:69000,old:99000,icon:'⚡',grad:'linear-gradient(135deg,#0891b2,#2563eb)',pages:72,rating:4.8,downloads:4100,title:{en:'ChatGPT for Productivity',id:'ChatGPT untuk Produktivitas'},desc:{en:'Save 10+ hours a week with smart workflows.',id:'Hemat 10+ jam seminggu dengan alur kerja cerdas.'}},
+    {id:'eb6',cat:'Business',price:119000,old:179000,icon:'💼',grad:'linear-gradient(135deg,#4f46e5,#7c3aed)',pages:96,rating:4.9,downloads:1900,title:{en:'AI for Small Business Owners',id:'AI untuk Pemilik Usaha Kecil'},desc:{en:'Cut costs and grow with practical AI playbooks.',id:'Hemat biaya & bertumbuh dengan playbook AI praktis.'}},
+    {id:'eb7',cat:'Creative',price:99000,old:0,icon:'🎨',grad:'linear-gradient(135deg,#db2777,#7c3aed)',pages:84,rating:4.7,downloads:2600,title:{en:'The Image Generation Handbook',id:'Panduan Generasi Gambar AI'},desc:{en:'Master Midjourney, DALL·E & Stable Diffusion.',id:'Kuasai Midjourney, DALL·E & Stable Diffusion.'}},
+    {id:'eb8',cat:'Foundations',price:0,old:0,icon:'📗',grad:'linear-gradient(135deg,#059669,#16a34a)',pages:24,rating:4.8,downloads:11200,title:{en:'AI Foundations Cheat Sheet',id:'Lembar Sakti Dasar AI'},desc:{en:'The free quick-start every beginner needs.',id:'Panduan cepat gratis untuk setiap pemula.'}},
+  ];
+  CONSULT = [
+    {id:'cs1',price:1500000,unitKey:'session',featured:false,icon:'🎯',
+      name:{en:'Strategy Session',id:'Sesi Strategi'},
+      tagline:{en:'1-on-1, 90 minutes',id:'1-on-1, 90 menit'},
+      feats:{en:['AI opportunity assessment','Personalized tool stack','Action plan & next steps','Session recording'],id:['Asesmen peluang AI','Rekomendasi tool stack','Rencana aksi & langkah lanjut','Rekaman sesi']}},
+    {id:'cs2',price:8000000,unitKey:'day',featured:true,icon:'👥',
+      name:{en:'Team Workshop',id:'Workshop Tim'},
+      tagline:{en:'Up to 20 people, 1 day',id:'Hingga 20 orang, 1 hari'},
+      feats:{en:['Hands-on AI training','Role-based use cases','Custom prompt library','30-day follow-up support','Certificates of completion'],id:['Pelatihan AI praktik langsung','Use case sesuai peran','Library prompt khusus','Dukungan lanjutan 30 hari','Sertifikat kelulusan']}},
+    {id:'cs3',price:0,unitKey:'custom',featured:false,icon:'🏢',
+      name:{en:'Enterprise Transformation',id:'Transformasi Enterprise'},
+      tagline:{en:'Org-wide, multi-month',id:'Skala organisasi, multi-bulan'},
+      feats:{en:['AI maturity audit','Roadmap & governance','Custom solution build','Change management','Executive briefings'],id:['Audit kematangan AI','Roadmap & tata kelola','Pengembangan solusi khusus','Manajemen perubahan','Briefing eksekutif']}},
+  ];
+  TESTI = [
+    {name:'Maya Hartono',roleEn:'Marketing Lead, Tokopedia seller',roleId:'Marketing Lead, seller Tokopedia',av:'MH',grad:'linear-gradient(135deg,#7c3aed,#2563eb)',
+      q:{en:'I went from AI-curious to running our whole content pipeline with AI. The prompt course alone paid for itself in a week.',id:'Dari sekadar penasaran soal AI, kini saya menjalankan seluruh pipeline konten dengan AI. Kelas prompt-nya balik modal dalam seminggu.'}},
+    {name:'Rizky Pratama',roleEn:'Founder, Logistics startup',roleId:'Founder, startup Logistik',av:'RP',grad:'linear-gradient(135deg,#059669,#0891b2)',
+      q:{en:'The consulting session gave us a clear AI roadmap. We automated 3 workflows in the first month.',id:'Sesi konsultasinya memberi kami roadmap AI yang jelas. Kami mengotomatiskan 3 alur kerja di bulan pertama.'}},
+    {name:'Dewi Anggraini',roleEn:'HR Manager, Manufacturing',roleId:'HR Manager, Manufaktur',av:'DA',grad:'linear-gradient(135deg,#db2777,#7c3aed)',
+      q:{en:'Clear, practical and in Bahasa Indonesia. My team finally feels confident using AI tools daily.',id:'Jelas, praktis, dan dalam Bahasa Indonesia. Tim saya akhirnya percaya diri memakai tools AI setiap hari.'}},
+    {name:'Kevin Tanuwijaya',roleEn:'Software Engineer',roleId:'Software Engineer',av:'KT',grad:'linear-gradient(135deg,#ea580c,#db2777)',
+      q:{en:'The AI Agents course is the most practical one I have taken. I shipped an internal agent two weeks later.',id:'Kelas AI Agents adalah yang paling praktis yang pernah saya ikuti. Dua minggu kemudian saya rilis agent internal.'}},
+    {name:'Putri Maharani',roleEn:'Freelance Designer',roleId:'Desainer Freelance',av:'PM',grad:'linear-gradient(135deg,#4f46e5,#2563eb)',
+      q:{en:'I doubled my output and started charging more. Best investment in my skills this year.',id:'Output saya berlipat dan saya berani menaikkan tarif. Investasi skill terbaik tahun ini.'}},
+  ];
+  FAQ = [
+    {q:{en:'Do I need a technical background?',id:'Apakah saya perlu latar belakang teknis?'},a:{en:'No. Most of our courses are designed for non-technical learners. We start from the fundamentals and build up step by step.',id:'Tidak. Sebagian besar kelas kami dirancang untuk pemula non-teknis. Kami mulai dari dasar dan membangun bertahap.'}},
+    {q:{en:'Are the courses in Bahasa Indonesia?',id:'Apakah kelasnya berbahasa Indonesia?'},a:{en:'Yes. Lessons, materials and support are available in Bahasa Indonesia, with English resources included where helpful.',id:'Ya. Materi dan dukungan tersedia dalam Bahasa Indonesia, dengan tambahan referensi berbahasa Inggris bila membantu.'}},
+    {q:{en:'Do I get a certificate?',id:'Apakah saya mendapat sertifikat?'},a:{en:'Every course includes a verifiable certificate of completion you can share on LinkedIn and with employers.',id:'Setiap kelas dilengkapi sertifikat kelulusan terverifikasi yang bisa dibagikan di LinkedIn dan ke perusahaan.'}},
+    {q:{en:'How long do I have access?',id:'Berapa lama saya bisa mengakses?'},a:{en:'You get lifetime access to course materials, including all future updates, with a single purchase.',id:'Kamu mendapat akses seumur hidup ke materi, termasuk semua pembaruan ke depan, dengan sekali bayar.'}},
+    {q:{en:'What payment methods do you accept?',id:'Metode pembayaran apa saja yang diterima?'},a:{en:'We support bank transfer, virtual account, e-wallets (GoPay, OVO, DANA) and credit cards via secure checkout.',id:'Kami mendukung transfer bank, virtual account, e-wallet (GoPay, OVO, DANA) dan kartu kredit lewat checkout aman.'}},
+    {q:{en:'Is there a refund policy?',id:'Apakah ada kebijakan refund?'},a:{en:'Yes — a 14-day money-back guarantee on all courses if they are not the right fit for you.',id:'Ya — garansi uang kembali 14 hari untuk semua kelas jika dirasa kurang cocok.'}},
+  ];
+
+  I18N = {
+    en:{
+      nav:{home:'Home',courses:'Courses',ebooks:'E-books',consulting:'Consulting',contact:'Contact',login:'Log in'},
+      tags:{best:'Bestseller',hot:'Trending',new:'New'},
+      levels:{Beginner:'Beginner',Intermediate:'Intermediate',Advanced:'Advanced',all:'All levels'},
+      units:{session:'/ session',day:'/ day',custom:'Custom'},
+      cart:{title:'Your cart',empty:'Your cart is empty',emptySub:'Browse courses to get started.',subtotal:'Subtotal',checkout:'Checkout',course:'Online course',ebook:'E-book',consult:'Consulting'},
+      hero:{badge:'AI education Platform',t1:'Master AI.',t2:'Build what comes next.',sub:'Practical AI courses, ready-to-use digital products and hands-on consulting — for professionals and teams who want results, not hype.',cta1:'Explore courses',cta2:'Talk to a consultant',trust:'Trusted by 12,000+ learners, founders and teams'},
+      stats:{s1:'12,000+',l1:'Active learners',s2:'50+',l2:'Expert-led courses',s3:'4.9/5',l3:'Average rating',s4:'95%',l4:'Completion rate'},
+      courses:{title:'Popular courses',sub:'Hand-crafted, project-based and constantly updated as AI evolves.',viewAll:'View all courses',add:'Add to cart',details:'Details',lessons:'lessons',students:'learners'},
+      ebooks:{title:'Digital products & e-books',sub:'Quick, affordable resources you can put to work today.',get:'Get it',free:'Free',pages:'pages',viewAll:'View all e-books',catTitle:'E-books & digital guides',catSub:'Browse our full library of downloadable AI guides — by topic, level and price.',downloads:'downloads',search:'Search e-books…',results:'e-books'},
+      about:{title:'Why ProAIcademy',sub:'We turn fast-moving AI into clear, usable skills for the real world.',
+        f1t:'Practical, not theoretical',f1d:'Every lesson ends with something you can apply at work the same day.',
+        f2t:'Made for Professional Workers',f2d:'Designed for professionals who want to go deep with AI and elevate their AI skills.',
+        f3t:'Always up to date',f3d:'We refresh content as tools change — your access is for life.',
+        f4t:'Real expert mentors',f4d:'Learn from practitioners shipping AI in real companies, not slideware.'},
+      consultHome:{title:'Need AI applied to your business?',sub:'From a single strategy session to org-wide transformation, our consultants help you ship real outcomes.',cta:'Explore consulting'},
+      testi:{title:'Loved by learners & teams',sub:'Real results from people building with AI.'},
+      affil:{title:'Earn with our affiliate program',sub:'Share courses you love and earn recurring commission on every sale.',commission:'up to 40%',commissionL:'commission per sale',cta:'Become an affiliate',
+        s1t:'Sign up free',s1d:'Join in minutes and get your unique referral link.',
+        s2t:'Share anywhere',s2d:'Promote on social, your blog or to your community.',
+        s3t:'Get paid monthly',s3d:'Track clicks and earnings on a live dashboard.'},
+      faq:{title:'Frequently asked questions',sub:'Everything you need to know before you start.'},
+      contact:{title:'Let’s talk',sub:'Questions about courses or consulting? Send us a message.',name:'Full name',email:'Email address',company:'Company (optional)',msg:'How can we help?',send:'Send message',sent:'Thanks! We’ll get back to you within 1 business day.'},
+      footer:{tagline:'Practical AI education, digital products and consulting for Indonesia.',explore:'Explore',company:'Company',support:'Support',news:'Get AI tips & new course alerts',sub:'Subscribe',rights:'All rights reserved.',
+        l_courses:'All courses',l_ebooks:'E-books',l_consulting:'Consulting',l_affiliate:'Affiliate',l_about:'About us',l_blog:'Blog',l_careers:'Careers',l_contact:'Contact',l_faq:'FAQ',l_help:'Help center',l_terms:'Terms',l_privacy:'Privacy'},
+      cat:{title:'Explore all courses',sub:'Filter by topic, level and price to find your next skill.',search:'Search courses…',all:'All',sortBy:'Sort by',sort_pop:'Most popular',sort_new:'Newest',sort_low:'Price: low to high',sort_high:'Price: high to low',sort_rating:'Top rated',results:'courses',none:'No courses match your filters.',clear:'Clear filters'},
+      detail:{back:'All courses',enroll:'Enroll now',add:'Add to cart',by:'By',includes:'This course includes',learn:'What you’ll learn',curriculum:'Curriculum',i1:'Lifetime access',i2:'Certificate of completion',i3:'Downloadable resources',i4:'14-day money-back guarantee',i5:'Access on mobile & desktop',related:'You might also like',modules:'modules',off:'OFF'},
+      consulting:{badge:'AI Consulting',title:'AI strategy & implementation, done with you',sub:'We help teams move from AI curiosity to real, measured impact — practically and without the jargon.',cta:'Book a strategy call',pickT:'Choose your engagement',pickS:'Transparent options for every stage of your AI journey.',book:'Book this',most:'Most popular',
+        procT:'How we work',procS:'A simple, proven path from idea to impact.',
+        p1t:'Discover',p1d:'We map your goals, workflows and where AI can create the most value.',
+        p2t:'Design',p2d:'We design a practical roadmap and prioritized, high-ROI use cases.',
+        p3t:'Build',p3d:'We build and integrate solutions alongside your team.',
+        p4t:'Enable',p4d:'We train your people so the impact sticks long after we leave.'},
+      checkout:{title:'Checkout',empty:'Your cart is empty',emptySub:'Add a course or product to continue.',browse:'Browse courses',summary:'Order summary',billing:'Billing details',name:'Full name',email:'Email',phone:'Phone',pay:'Payment method',card:'Credit / debit card',va:'Virtual account / bank transfer',ewallet:'E-wallet (GoPay / OVO / DANA)',place:'Place order',subtotal:'Subtotal',tax:'Tax (PPN 11%)',total:'Total',secure:'Secure 256-bit encrypted checkout',doneT:'Order confirmed!',doneS:'Check your email for access links and your invoice. Welcome aboard 🎉',doneBtn:'Continue learning'},
+      auth:{loginT:'Welcome back',loginS:'Log in to continue learning.',regT:'Create your account',regS:'Start learning AI in minutes.',email:'Email address',pass:'Password',name:'Full name',login:'Log in',register:'Create account',or:'or continue with',noAcc:'Don’t have an account?',haveAcc:'Already have an account?',signup:'Sign up',signin:'Log in',forgot:'Forgot password?',remember:'Remember me'}
+    },
+    id:{
+      nav:{home:'Beranda',courses:'Kelas',ebooks:'E-book',consulting:'Konsultasi',contact:'Kontak',login:'Masuk'},
+      tags:{best:'Terlaris',hot:'Populer',new:'Baru'},
+      levels:{Beginner:'Pemula',Intermediate:'Menengah',Advanced:'Mahir',all:'Semua level'},
+      units:{session:'/ sesi',day:'/ hari',custom:'Custom'},
+      cart:{title:'Keranjang',empty:'Keranjang kosong',emptySub:'Jelajahi kelas untuk mulai.',subtotal:'Subtotal',checkout:'Bayar',course:'Kelas online',ebook:'E-book',consult:'Konsultasi'},
+      hero:{badge:'Platform Pendidikan AI',t1:'Kuasai AI.',t2:'Bangun masa depan.',sub:'Kelas AI praktis, produk digital siap pakai, dan konsultasi langsung — untuk profesional & tim yang ingin hasil nyata, bukan sekadar tren.',cta1:'Jelajahi kelas',cta2:'Konsultasi gratis',trust:'Dipercaya 12.000+ pembelajar, founder & tim'},
+      stats:{s1:'12.000+',l1:'Pembelajar aktif',s2:'50+',l2:'Kelas dari pakar',s3:'4,9/5',l3:'Rata-rata rating',s4:'95%',l4:'Tingkat penyelesaian'},
+      courses:{title:'Kelas populer',sub:'Berbasis proyek, dibuat teliti, dan terus diperbarui mengikuti AI.',viewAll:'Lihat semua kelas',add:'Tambah',details:'Detail',lessons:'materi',students:'pembelajar'},
+      ebooks:{title:'Produk digital & e-book',sub:'Sumber belajar cepat dan terjangkau yang bisa langsung dipakai.',get:'Ambil',free:'Gratis',pages:'halaman',viewAll:'Lihat semua e-book',catTitle:'E-book & panduan digital',catSub:'Jelajahi seluruh koleksi panduan AI yang bisa diunduh — berdasarkan topik & harga.',downloads:'unduhan',search:'Cari e-book…',results:'e-book'},
+      about:{title:'Kenapa ProAIcademy',sub:'Kami mengubah AI yang bergerak cepat menjadi skill yang jelas dan terpakai.',
+        f1t:'Praktis, bukan teori',f1d:'Setiap materi diakhiri sesuatu yang bisa langsung kamu pakai di kerjaan hari itu.',
+        f2t:'Dibuat untuk Pekerja Profesional',f2d:'Dirancang untuk profesional yang ingin mendalami AI dan meningkatkan skill AI mereka.',
+        f3t:'Selalu terbarui',f3d:'Materi kami perbarui saat tools berubah — aksesmu seumur hidup.',
+        f4t:'Mentor praktisi nyata',f4d:'Belajar dari praktisi yang benar-benar menerapkan AI di perusahaan.'},
+      consultHome:{title:'Butuh AI diterapkan di bisnismu?',sub:'Dari satu sesi strategi hingga transformasi skala organisasi, konsultan kami bantu wujudkan hasil nyata.',cta:'Lihat konsultasi'},
+      testi:{title:'Disukai pembelajar & tim',sub:'Hasil nyata dari mereka yang membangun dengan AI.'},
+      affil:{title:'Hasilkan lewat program afiliasi',sub:'Bagikan kelas favoritmu dan dapatkan komisi berulang dari setiap penjualan.',commission:'hingga 40%',commissionL:'komisi per penjualan',cta:'Gabung afiliasi',
+        s1t:'Daftar gratis',s1d:'Gabung dalam menit dan dapatkan link referral unikmu.',
+        s2t:'Bagikan di mana saja',s2d:'Promosikan di sosial media, blog, atau komunitasmu.',
+        s3t:'Dibayar tiap bulan',s3d:'Pantau klik & penghasilan lewat dashboard real-time.'},
+      faq:{title:'Pertanyaan umum',sub:'Semua yang perlu kamu tahu sebelum mulai.'},
+      contact:{title:'Mari bicara',sub:'Ada pertanyaan soal kelas atau konsultasi? Kirim pesan ke kami.',name:'Nama lengkap',email:'Alamat email',company:'Perusahaan (opsional)',msg:'Ada yang bisa kami bantu?',send:'Kirim pesan',sent:'Terima kasih! Kami akan membalas dalam 1 hari kerja.'},
+      footer:{tagline:'Pendidikan AI praktis, produk digital & konsultasi untuk Indonesia.',explore:'Jelajahi',company:'Perusahaan',support:'Dukungan',news:'Dapatkan tips AI & info kelas baru',sub:'Langganan',rights:'Hak cipta dilindungi.',
+        l_courses:'Semua kelas',l_ebooks:'E-book',l_consulting:'Konsultasi',l_affiliate:'Afiliasi',l_about:'Tentang kami',l_blog:'Blog',l_careers:'Karier',l_contact:'Kontak',l_faq:'FAQ',l_help:'Pusat bantuan',l_terms:'Ketentuan',l_privacy:'Privasi'},
+      cat:{title:'Jelajahi semua kelas',sub:'Saring berdasarkan topik, level & harga untuk skill berikutnya.',search:'Cari kelas…',all:'Semua',sortBy:'Urutkan',sort_pop:'Paling populer',sort_new:'Terbaru',sort_low:'Harga: termurah',sort_high:'Harga: termahal',sort_rating:'Rating tertinggi',results:'kelas',none:'Tidak ada kelas yang cocok dengan filter.',clear:'Reset filter'},
+      detail:{back:'Semua kelas',enroll:'Daftar sekarang',add:'Tambah ke keranjang',by:'Oleh',includes:'Kelas ini termasuk',learn:'Yang akan kamu pelajari',curriculum:'Kurikulum',i1:'Akses seumur hidup',i2:'Sertifikat kelulusan',i3:'Materi bisa diunduh',i4:'Garansi uang kembali 14 hari',i5:'Akses di HP & desktop',related:'Mungkin kamu suka',modules:'modul',off:'DISKON'},
+      consulting:{badge:'Konsultasi AI',title:'Strategi & implementasi AI, dikerjakan bersamamu',sub:'Kami bantu tim beralih dari penasaran soal AI ke dampak nyata yang terukur — praktis dan tanpa jargon.',cta:'Jadwalkan sesi strategi',pickT:'Pilih paket kerja sama',pickS:'Opsi transparan untuk setiap tahap perjalanan AI-mu.',book:'Pesan ini',most:'Paling populer',
+        procT:'Cara kami bekerja',procS:'Alur sederhana & teruji dari ide ke dampak.',
+        p1t:'Telusuri',p1d:'Kami petakan tujuan, alur kerja, dan di mana AI memberi nilai terbesar.',
+        p2t:'Rancang',p2d:'Kami susun roadmap praktis dan use case ber-ROI tinggi yang diprioritaskan.',
+        p3t:'Bangun',p3d:'Kami bangun & integrasikan solusi bersama timmu.',
+        p4t:'Berdayakan',p4d:'Kami latih timmu agar dampaknya bertahan lama setelah kami selesai.'},
+      checkout:{title:'Pembayaran',empty:'Keranjang kosong',emptySub:'Tambahkan kelas atau produk untuk lanjut.',browse:'Jelajahi kelas',summary:'Ringkasan pesanan',billing:'Detail penagihan',name:'Nama lengkap',email:'Email',phone:'Telepon',pay:'Metode pembayaran',card:'Kartu kredit / debit',va:'Virtual account / transfer bank',ewallet:'E-wallet (GoPay / OVO / DANA)',place:'Bayar sekarang',subtotal:'Subtotal',tax:'Pajak (PPN 11%)',total:'Total',secure:'Checkout terenkripsi 256-bit yang aman',doneT:'Pesanan dikonfirmasi!',doneS:'Cek emailmu untuk link akses & invoice. Selamat bergabung 🎉',doneBtn:'Lanjut belajar'},
+      auth:{loginT:'Selamat datang kembali',loginS:'Masuk untuk lanjut belajar.',regT:'Buat akunmu',regS:'Mulai belajar AI dalam menit.',email:'Alamat email',pass:'Kata sandi',name:'Nama lengkap',login:'Masuk',register:'Buat akun',or:'atau lanjut dengan',noAcc:'Belum punya akun?',haveAcc:'Sudah punya akun?',signup:'Daftar',signin:'Masuk',forgot:'Lupa sandi?',remember:'Ingat saya'}
+    }
+  };
+
+  // ---------- LIFECYCLE ----------
+  componentDidMount(){
+    try{
+      const l=localStorage.getItem('proai_lang'); if(l) this.setState({lang:l});
+      const c=localStorage.getItem('proai_cart'); if(c) this.setState({cart:JSON.parse(c)});
+      const g=localStorage.getItem('proai_guest_orders'); if(g) this.setState({guestOrders:JSON.parse(g)});
+    }catch(e){}
+    this.applyTheme();
+    this._ti=setInterval(()=>this.setState(s=>({testi:(s.testi+1)%this.TESTI.length})),6000);
+    this.loadContent();
+    this.initAuth();
+    this.loadProviders();
+  }
+  componentDidUpdate(){ this.applyTheme(); }
+  componentWillUnmount(){ clearInterval(this._ti); if(this._authSub&&this._authSub.unsubscribe) this._authSub.unsubscribe(); }
+
+  // ---------- SUPABASE: CONTENT ----------
+  // Pulls catalogue content from Supabase and replaces the bundled fallback data,
+  // so prices/content can be edited in the database without touching the front end.
+  async loadContent(){
+    const sb=window.proaiSupabase; if(!sb) return;
+    try{
+      const [c,e,cs,t,f]=await Promise.all([
+        sb.from('courses').select('*').eq('is_published',true).order('sort_order'),
+        sb.from('ebooks').select('*').eq('is_published',true).order('sort_order'),
+        sb.from('consulting_packages').select('*').eq('is_published',true).order('sort_order'),
+        sb.from('testimonials').select('*').eq('is_published',true).order('sort_order'),
+        sb.from('faqs').select('*').eq('is_published',true).order('sort_order'),
+      ]);
+      if(c.data&&c.data.length) this.COURSES=c.data.map(r=>({id:r.id,cat:r.cat,level:r.level,lessons:r.lessons,
+        hours:Number(r.hours),rating:Number(r.rating),reviews:r.reviews,students:r.students,price:r.price,
+        old:r.old_price,icon:r.icon,grad:r.grad,instructor:r.instructor,tagKey:r.tag_key||'',title:r.title,desc:r.description}));
+      if(e.data&&e.data.length) this.EBOOKS=e.data.map(r=>({id:r.id,cat:r.cat,price:r.price,old:r.old_price,
+        icon:r.icon,grad:r.grad,pages:r.pages,rating:Number(r.rating),downloads:r.downloads,title:r.title,desc:r.description,
+        filePath:r.file_path,fileName:r.file_name}));
+      if(cs.data&&cs.data.length) this.CONSULT=cs.data.map(r=>({id:r.id,price:r.price,unitKey:r.unit_key,
+        featured:r.featured,icon:r.icon,name:r.name,tagline:r.tagline,feats:r.features}));
+      if(t.data&&t.data.length) this.TESTI=t.data.map(r=>({name:r.name,roleEn:(r.role||{}).en,roleId:(r.role||{}).id,
+        av:r.avatar,grad:r.grad,q:r.quote}));
+      if(f.data&&f.data.length) this.FAQ=f.data.map(r=>({q:r.question,a:r.answer}));
+      const err=[c,e,cs,t,f].map(r=>r.error).filter(Boolean);
+      if(err.length) console.warn('[proai] some content failed to load:',err);
+      this.setState({dataReady:true});
+    }catch(err){ console.warn('[proai] content load failed, using bundled fallback data:',err); }
+  }
+
+  // ---------- SUPABASE: AUTH ----------
+  async initAuth(){
+    const sb=window.proaiSupabase; if(!sb) return;
+    try{
+      const { data:{ session } }=await sb.auth.getSession();
+      this.setUserFromSession(session);
+      const { data }=sb.auth.onAuthStateChange((_evt,session)=>this.setUserFromSession(session));
+      this._authSub=data&&data.subscription;
+    }catch(err){ console.warn('[proai] auth init failed:',err); }
+  }
+  setUserFromSession(session){
+    const u=session&&session.user;
+    if(u){
+      const md=u.user_metadata||{};
+      this.setState({user:{id:u.id,email:u.email,name:md.full_name||md.name||(u.email||'').split('@')[0],avatar:md.avatar_url||''}},()=>this.loadEntitlements());
+    }else{
+      this.setState({user:null,ownedEbooks:[]});
+    }
+  }
+  // Which e-books the signed-in user has paid for (RLS returns only their own rows).
+  async loadEntitlements(){
+    const sb=window.proaiSupabase;
+    if(!sb||!this.state.user){ this.setState({ownedEbooks:[]}); return; }
+    try{
+      const { data }=await sb.from('entitlements').select('product_id').eq('product_type','ebook');
+      this.setState({ownedEbooks:(data||[]).map(r=>r.product_id)});
+    }catch(e){ /* ignore */ }
+  }
+  productType(id){
+    if(this.COURSES.some(c=>c.id===id)) return 'course';
+    if(this.EBOOKS.some(e=>e.id===id)) return 'ebook';
+    if(this.CONSULT.some(c=>c.id===id)) return 'consulting';
+    return null;
+  }
+  async authSubmitHandler(e){
+    if(e)e.preventDefault();
+    const sb=window.proaiSupabase;
+    if(!sb){ this.setState({authError:'Backend not configured.'}); return; }
+    const form=e.target;
+    const email=(form.email&&form.email.value||'').trim();
+    const password=(form.password&&form.password.value||'');
+    const fullname=(form.fullname&&form.fullname.value||'').trim();
+    this.setState({authLoading:true,authError:''});
+    try{
+      if(this.state.authMode==='register'){
+        const { data,error }=await sb.auth.signUp({email,password,options:{data:{full_name:fullname}}});
+        if(error) throw error;
+        if(data.session){ this.setState({authError:''}); this.go('home'); }
+        else { this.setState({authError:'Account created — check your email to confirm, then log in.',authMode:'login'}); }
+      }else{
+        const { error }=await sb.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        this.setState({authError:''}); this.go('home');
+      }
+    }catch(err){ this.setState({authError:(err&&err.message)||'Authentication failed.'}); }
+    finally{ this.setState({authLoading:false}); }
+  }
+  // Discover which social providers are actually enabled on the Supabase project,
+  // so we only show buttons that will work. Locally (providers not configured) the
+  // social buttons stay hidden; once you enable Google/Facebook in the dashboard
+  // they appear automatically.
+  async loadProviders(){
+    try{
+      const url=window.PROAI_SUPABASE_URL, key=window.PROAI_SUPABASE_KEY;
+      if(!url||!key) return;
+      const res=await fetch(url+'/auth/v1/settings',{headers:{apikey:key}});
+      if(!res.ok) return;
+      const s=await res.json();
+      const ext=(s&&s.external)||{};
+      this.setState({providers:{google:!!ext.google, facebook:!!ext.facebook}});
+    }catch(e){ /* keep social logins hidden if we can't tell */ }
+  }
+  async signInProvider(provider){
+    const sb=window.proaiSupabase; if(!sb){ this.setState({authError:'Backend not configured.'}); return; }
+    const id=this.state.lang==='id';
+    const nice=provider.charAt(0).toUpperCase()+provider.slice(1);
+    if(!(this.state.providers&&this.state.providers[provider])){
+      this.setState({authError: id
+        ? ('Login '+nice+' belum diaktifkan. Aktifkan provider ini di dashboard Supabase (lihat README).')
+        : (nice+' sign-in is not enabled yet. Configure this provider in your Supabase dashboard (see README).')});
+      return;
+    }
+    this.setState({authError:''});
+    try{
+      const redirectTo=window.location.origin+window.location.pathname;
+      const { error }=await sb.auth.signInWithOAuth({provider,options:{redirectTo}});
+      if(error) throw error;
+    }catch(err){ this.setState({authError:(err&&err.message)||('Could not sign in with '+provider+'.')}); }
+  }
+  async signOut(){
+    const sb=window.proaiSupabase; if(!sb) return;
+    try{ await sb.auth.signOut(); }catch(e){}
+    this.setState({user:null}); this.go('home');
+  }
+
+  // ---------- SUPABASE: STORAGE (e-book downloads) ----------
+  // Fetches a short-lived signed URL for the stored file and triggers a download.
+  // Free e-books are open; paid e-books require the user to be signed in.
+  async downloadEbook(e){
+    const sb=window.proaiSupabase; const id=this.state.lang==='id';
+    if(!sb||!e||!e.filePath) return;
+    try{
+      if(!e.price){
+        // Free e-book: a direct signed URL (allowed for everyone by storage RLS).
+        const { data, error }=await sb.storage.from('ebook-files').createSignedUrl(e.filePath,120,{download:e.fileName||true});
+        if(error) throw error;
+        window.open(data.signedUrl,'_blank');
+        return;
+      }
+      // Paid e-book: go through download-ebook, which checks payment (guest token or entitlement).
+      const go=(this.state.guestOrders||[]).find(o=>(o.ebookIds||[]).indexOf(e.id)>=0);
+      const body={ product_id:e.id };
+      if(go){ body.order_id=go.order_id; body.access_token=go.access_token; }
+      else if(!this.state.user){ this.go('login'); return; }
+      const { data, error }=await sb.functions.invoke('download-ebook',{ body });
+      if(error){ let msg=error.message; try{ const ctx=await error.context.json(); if(ctx&&ctx.error) msg=ctx.error; }catch(_){} throw new Error(msg); }
+      if(!data||!data.url) throw new Error((data&&data.error)||'No download link');
+      window.open(data.url,'_blank');
+    }catch(err){
+      window.alert((id?'Gagal mengunduh e-book: ':'Could not download e-book: ')+((err&&err.message)||err));
+    }
+  }
+
+  // ---------- MIDTRANS: CHECKOUT ----------
+  // Lazily load Midtrans Snap.js using the configured client key.
+  ensureSnap(){
+    if(window.snap) return Promise.resolve(true);
+    const cfg=window.PROAI_MIDTRANS||{};
+    if(!cfg.clientKey){ return Promise.reject(new Error('not_configured')); }
+    if(this._snapPromise) return this._snapPromise;
+    this._snapPromise=new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=(cfg.production?'https://app.midtrans.com':'https://app.sandbox.midtrans.com')+'/snap/snap.js';
+      s.setAttribute('data-client-key',cfg.clientKey);
+      s.onload=()=>resolve(true);
+      s.onerror=()=>reject(new Error('snap_load_failed'));
+      document.head.appendChild(s);
+    });
+    return this._snapPromise;
+  }
+  // Checkout works for both signed-in users AND guests (no account needed).
+  async startCheckout(e){
+    if(e)e.preventDefault();
+    const sb=window.proaiSupabase; const id=this.state.lang==='id';
+    if(!sb){ this.setState({checkoutMsg:'Backend not configured.'}); return; }
+    const form=e&&e.target;
+    const email=(form&&form.email&&form.email.value||'').trim();
+    const name=(form&&form.fullname&&form.fullname.value||'').trim();
+    const items=this.state.cart
+      .map(ci=>({product_type:this.productType(ci.id),product_id:ci.id,qty:ci.qty}))
+      .filter(x=>x.product_type);
+    if(!items.length){ return; }
+    const ebookIds=items.filter(x=>x.product_type==='ebook').map(x=>x.product_id);
+    this.setState({checkoutLoading:true,checkoutMsg:''});
+    try{
+      const { data,error }=await sb.functions.invoke('create-payment',{ body:{ items, email, name } });
+      let payload=data;
+      if(error){
+        let msg=error.message;
+        try{ const ctx=await error.context.json(); if(ctx&&ctx.error) msg=ctx.error; }catch(_){}
+        throw new Error(msg);
+      }
+      if(!payload||!payload.token) throw new Error((payload&&payload.error)||'No payment token returned');
+      await this.ensureSnap();
+      const purchase={ orderId:payload.order_id, accessToken:payload.access_token, ebookIds, isGuest:!this.state.user };
+      window.snap.pay(payload.token,{
+        onSuccess:()=>this.afterPayment(purchase),
+        onPending:()=>this.afterPayment(purchase),
+        onError:()=>this.setState({checkoutLoading:false,checkoutMsg:id?'Pembayaran gagal. Coba lagi.':'Payment failed. Please try again.'}),
+        onClose:()=>this.setState({checkoutLoading:false}),
+      });
+    }catch(err){
+      const m=(err&&err.message)||'';
+      let msg;
+      if(m==='not_configured') msg=id?'Pembayaran Midtrans belum dikonfigurasi (lihat README).':'Midtrans payment is not configured yet (see README).';
+      else if(m==='snap_load_failed') msg=id?'Gagal memuat Midtrans Snap.':'Failed to load Midtrans Snap.';
+      else msg=(id?'Checkout gagal: ':'Checkout failed: ')+m;
+      this.setState({checkoutLoading:false,checkoutMsg:msg});
+    }
+  }
+  saveGuestOrders(){ try{ localStorage.setItem('proai_guest_orders',JSON.stringify(this.state.guestOrders)); }catch(e){} }
+  // Payment captured. Guests keep a local "receipt" (order id + access token) so they can
+  // download their files; signed-in users get entitlements from the webhook (refresh a few times).
+  afterPayment(purchase){
+    this.setState({checkoutLoading:false,checkoutMsg:'',orderPlaced:true,cart:[]},()=>this.save());
+    if(purchase && purchase.isGuest && purchase.accessToken && (purchase.ebookIds||[]).length){
+      const go={ order_id:purchase.orderId, access_token:purchase.accessToken, ebookIds:purchase.ebookIds };
+      this.setState(s=>({guestOrders:[...s.guestOrders, go]}),()=>this.saveGuestOrders());
+    }
+    if(this.state.user){
+      this.loadEntitlements();
+      setTimeout(()=>this.loadEntitlements(),3000);
+      setTimeout(()=>this.loadEntitlements(),8000);
+    }
+  }
+  applyTheme(){
+    const el=this.rootRef.current; if(!el) return;
+    const a=(this.props&&this.props.accent)||'violet';
+    const map={violet:['#7c3aed','#2563eb','rgba(124,58,237,.45)'],azure:['#2563eb','#06b6d4','rgba(37,99,235,.45)'],magenta:['#db2777','#7c3aed','rgba(219,39,119,.45)'],emerald:['#059669','#0891b2','rgba(5,150,105,.4)']};
+    const [a1,a2,g]=map[a]||map.violet;
+    el.style.setProperty('--ac1',a1); el.style.setProperty('--ac2',a2); el.style.setProperty('--acGlow',g);
+  }
+  save(){ try{ localStorage.setItem('proai_lang',this.state.lang); localStorage.setItem('proai_cart',JSON.stringify(this.state.cart)); }catch(e){} }
+
+  // ---------- HELPERS ----------
+  rp(n){ if(!n) return null; return 'Rp '+Number(n).toLocaleString('id-ID'); }
+  productById(id){ return this.COURSES.find(c=>c.id===id)||this.EBOOKS.find(e=>e.id===id)||this.CONSULT.find(c=>c.id===id); }
+  go(page){ this.setState({page,cartOpen:false}); window.scrollTo({top:0,behavior:'smooth'}); }
+  scrollTo(id){
+    this.setState({page:'home',cartOpen:false});
+    setTimeout(()=>{ const el=document.getElementById(id); if(el){ const y=el.getBoundingClientRect().top+window.scrollY-80; window.scrollTo({top:y,behavior:'smooth'}); } },60);
+  }
+  toggleLang(){ this.setState(s=>({lang:s.lang==='en'?'id':'en'}),()=>this.save()); }
+  addToCart(id){ this.setState(s=>{ const ex=s.cart.find(i=>i.id===id); let cart; if(ex){ cart=s.cart.map(i=>i.id===id?{...i,qty:i.qty+1}:i); } else { cart=[...s.cart,{id,qty:1}]; } return {cart,cartOpen:true}; },()=>this.save()); }
+  changeQty(id,d){ this.setState(s=>({cart:s.cart.map(i=>i.id===id?{...i,qty:Math.max(1,i.qty+d)}:i)}),()=>this.save()); }
+  removeFromCart(id){ this.setState(s=>({cart:s.cart.filter(i=>i.id!==id)}),()=>this.save()); }
+
+  genLearn(L){
+    const en=['Build real, portfolio-ready projects from day one','Apply AI tools to everyday work tasks','Avoid the common mistakes that waste time','Develop reliable, repeatable workflows','Know when — and when not — to use AI','Stay current as the tools keep evolving'];
+    const id=['Bangun proyek nyata siap-portfolio sejak awal','Terapkan tools AI ke tugas kerja sehari-hari','Hindari kesalahan umum yang membuang waktu','Kembangkan alur kerja andal & berulang','Tahu kapan — dan kapan tidak — memakai AI','Tetap update saat tools terus berkembang'];
+    return L==='en'?en:id;
+  }
+  genCurric(L,c){
+    const en=['Getting started','Core concepts','Hands-on practice','Real-world projects','Going further'];
+    const id=['Memulai','Konsep inti','Praktik langsung','Proyek dunia nyata','Tingkat lanjut'];
+    const names=L==='en'?en:id; const base=Math.floor(c.lessons/5); const rem=c.lessons-base*5;
+    return names.map((n,i)=>({title:n,lessons:base+(i<rem?1:0),i:i+1}));
+  }
+
+  // ---------- RENDER ----------
+  renderVals(){
+    const L=this.state.lang;
+    const t=this.I18N[L];
+    const loc=o=>o&&typeof o==='object'&&('en' in o)?o[L]:o;
+
+    const navLinks=[
+      {label:t.nav.home,go:()=>this.go('home'),active:this.state.page==='home'},
+      {label:t.nav.courses,go:()=>this.go('catalog'),active:this.state.page==='catalog'},
+      {label:t.nav.ebooks,go:()=>this.go('ebooks'),active:this.state.page==='ebooks'},
+      {label:t.nav.consulting,go:()=>this.go('consulting'),active:this.state.page==='consulting'},
+      {label:t.nav.contact,go:()=>this.scrollTo('contact'),active:false},
+    ].map(n=>({...n,color:n.active?'#fff':'#9a9ab0'}));
+
+    // cart
+    const cartItems=this.state.cart.map(ci=>{
+      const p=this.productById(ci.id); if(!p) return null;
+      const isC=this.COURSES.includes(p), isE=this.EBOOKS.includes(p);
+      return {id:ci.id,qty:ci.qty,title:loc(p.title)||loc(p.name),grad:p.grad,icon:p.icon,
+        typeLabel:isC?t.cart.course:isE?t.cart.ebook:t.cart.consult,
+        priceFmt:p.price?this.rp(p.price*ci.qty):t.ebooks.free,
+        inc:()=>this.changeQty(ci.id,1),dec:()=>this.changeQty(ci.id,-1),remove:()=>this.removeFromCart(ci.id)};
+    }).filter(Boolean);
+    const cartCount=this.state.cart.reduce((a,i)=>a+i.qty,0);
+    const subtotal=cartItems.reduce((a,i)=>{const p=this.productById(i.id);return a+(p.price||0)*i.qty;},0);
+
+    // course / ebook / consult card mappers
+    const card=(c)=>({...c, title:loc(c.title), desc:loc(c.desc),
+      tag:c.tagKey?t.tags[c.tagKey]:'', hasTag:!!c.tagKey, levelLabel:t.levels[c.level],
+      priceFmt:this.rp(c.price), oldFmt:this.rp(c.old), hasOld:!!c.old,
+      studentsFmt:c.students.toLocaleString('id-ID'), ratingFmt:String(c.rating).replace('.',L==='id'?',':'.'),
+      add:()=>this.addToCart(c.id), addClick:(e)=>{ e.stopPropagation(); this.addToCart(c.id); },
+      view:()=>{ this.setState({detailId:c.id}); this.go('detail'); }});
+    const dlWord=L==='id'?'Unduh':'Download';
+    const owned=this.state.ownedEbooks||[];
+    const guestEbooks=(this.state.guestOrders||[]).reduce((a,o)=>a.concat(o.ebookIds||[]),[]);
+    const ebook=(e)=>{
+      const hasFile=!!e.filePath;
+      const isOwned=!e.price||owned.indexOf(e.id)>=0||guestEbooks.indexOf(e.id)>=0; // free, or purchased (account or guest)
+      const canDownload=hasFile&&isOwned;
+      return {...e, title:loc(e.title), desc:loc(e.desc),
+        priceFmt:e.price?this.rp(e.price):t.ebooks.free, isFree:!e.price, priceColor:e.price?'#fff':'#6ee7b7',
+        oldFmt:this.rp(e.old), hasOld:!!e.old, ratingFmt:String(e.rating).replace('.',L==='id'?',':'.'),
+        downloadsFmt:e.downloads.toLocaleString('id-ID'), add:()=>this.addToCart(e.id),
+        hasFile, getLabel:canDownload?dlWord:t.ebooks.get,
+        getAction:canDownload?(()=>this.downloadEbook(e)):(()=>this.addToCart(e.id))};
+    };
+
+    const homeCourses=this.COURSES.slice(0,6).map(card);
+    const ebooks=this.EBOOKS.slice(0,4).map(ebook);
+
+    // ebook catalog
+    const ebCats=[...new Set(this.EBOOKS.map(e=>e.cat))];
+    const ebChips=[{key:'all',label:t.cat.all,active:this.state.ebcat==='all',set:()=>this.setState({ebcat:'all'})},
+      ...ebCats.map(c=>({key:c,label:c,active:this.state.ebcat===c,set:()=>this.setState({ebcat:c})}))]
+      .map(x=>({...x,bg:x.active?'var(--ac1)':'rgba(255,255,255,.05)',col:x.active?'#fff':'#9a9ab0',bd:x.active?'transparent':'rgba(255,255,255,.1)'}));
+    let fe=this.EBOOKS.slice();
+    const eq=this.state.ebq.toLowerCase().trim();
+    if(eq) fe=fe.filter(e=>(e.title.en+' '+e.title.id+' '+e.cat).toLowerCase().includes(eq));
+    if(this.state.ebcat!=='all') fe=fe.filter(e=>e.cat===this.state.ebcat);
+    const filteredEbooks=fe.map(ebook);
+
+    // about
+    const features=[
+      {icon:'🎯',title:t.about.f1t,desc:t.about.f1d},
+      {icon:'💼',title:t.about.f2t,desc:t.about.f2d},
+      {icon:'🔄',title:t.about.f3t,desc:t.about.f3d},
+      {icon:'🧑‍🏫',title:t.about.f4t,desc:t.about.f4d},
+    ];
+    const stats=[
+      {n:t.stats.s2,l:t.stats.l2},
+      {n:t.stats.s3,l:t.stats.l3},{n:t.stats.s4,l:t.stats.l4},
+    ];
+    const affilSteps=[
+      {n:'01',title:t.affil.s1t,desc:t.affil.s1d},
+      {n:'02',title:t.affil.s2t,desc:t.affil.s2d},
+      {n:'03',title:t.affil.s3t,desc:t.affil.s3d},
+    ];
+
+    // testimonials
+    const ti=this.state.testi; const tc=this.TESTI[ti];
+    const testimonial={...tc, role:L==='en'?tc.roleEn:tc.roleId, q:loc(tc.q)};
+    const testiDots=this.TESTI.map((_,i)=>({active:i===ti, go:()=>this.setState({testi:i}), bg:i===ti?'var(--ac1)':'rgba(255,255,255,.18)', w:i===ti?'26px':'8px'}));
+
+    // faq
+    const faqs=this.FAQ.map((f,i)=>({q:loc(f.q),a:loc(f.a),open:this.state.faqOpen===i,
+      sign:this.state.faqOpen===i?'−':'+', h:this.state.faqOpen===i?'auto':'0',
+      toggle:()=>this.setState(s=>({faqOpen:s.faqOpen===i?-1:i}))}));
+
+    // catalog
+    const cats=[...new Set(this.COURSES.map(c=>c.cat))];
+    const catChips=[{key:'all',label:t.cat.all,active:this.state.cat==='all',set:()=>this.setState({cat:'all'})},
+      ...cats.map(c=>({key:c,label:c,active:this.state.cat===c,set:()=>this.setState({cat:c})}))]
+      .map(x=>({...x,bg:x.active?'var(--ac1)':'rgba(255,255,255,.05)',col:x.active?'#fff':'#9a9ab0',bd:x.active?'transparent':'rgba(255,255,255,.1)'}));
+    const lvls=['Beginner','Intermediate','Advanced'];
+    const levelChips=[{key:'all',label:t.levels.all,active:this.state.level==='all',set:()=>this.setState({level:'all'})},
+      ...lvls.map(l=>({key:l,label:t.levels[l],active:this.state.level===l,set:()=>this.setState({level:l})}))]
+      .map(x=>({...x,bg:x.active?'rgba(124,58,237,.18)':'rgba(255,255,255,.04)',col:x.active?'#cbb6ff':'#9a9ab0',bd:x.active?'rgba(124,58,237,.5)':'rgba(255,255,255,.09)'}));
+    let fc=this.COURSES.slice();
+    const q=this.state.q.toLowerCase().trim();
+    if(q) fc=fc.filter(c=>(c.title.en+' '+c.title.id+' '+c.cat).toLowerCase().includes(q));
+    if(this.state.cat!=='all') fc=fc.filter(c=>c.cat===this.state.cat);
+    if(this.state.level!=='all') fc=fc.filter(c=>c.level===this.state.level);
+    const so=this.state.sort;
+    if(so==='low') fc.sort((a,b)=>a.price-b.price);
+    else if(so==='high') fc.sort((a,b)=>b.price-a.price);
+    else if(so==='rating') fc.sort((a,b)=>b.rating-a.rating);
+    else if(so==='new') fc.sort((a,b)=>this.COURSES.indexOf(b)-this.COURSES.indexOf(a));
+    else fc.sort((a,b)=>b.students-a.students);
+    const filtered=fc.map(card);
+    const sortOptions=[{v:'popular',l:t.cat.sort_pop},{v:'new',l:t.cat.sort_new},{v:'rating',l:t.cat.sort_rating},{v:'low',l:t.cat.sort_low},{v:'high',l:t.cat.sort_high}];
+
+    // detail
+    const dRaw=this.COURSES.find(c=>c.id===this.state.detailId)||this.COURSES[0];
+    let rel=this.COURSES.filter(c=>c.cat===dRaw.cat&&c.id!==dRaw.id);
+    if(rel.length<3) rel=[...rel,...this.COURSES.filter(c=>c.id!==dRaw.id&&!rel.includes(c))];
+    const detail={...card(dRaw), learn:this.genLearn(L), curriculum:this.genCurric(L,dRaw),
+      reviewsFmt:dRaw.reviews.toLocaleString('id-ID'), hoursFmt:String(dRaw.hours).replace('.',L==='id'?',':'.'),
+      totalLessons:dRaw.lessons, related:rel.slice(0,3).map(card),
+      includes:[t.detail.i1,t.detail.i2,t.detail.i3,t.detail.i5,t.detail.i4],
+      discount:dRaw.old?Math.round((1-dRaw.price/dRaw.old)*100):0};
+
+    // consulting
+    const consult=this.CONSULT.map(c=>({...c, name:loc(c.name), tagline:loc(c.tagline), feats:loc(c.feats),
+      unit:t.units[c.unitKey], priceFmt:c.price?this.rp(c.price):t.units.custom, isCustom:!c.price, showUnit:!!c.price,
+      featured:c.featured,
+      cardBg:c.featured?'linear-gradient(180deg,rgba(124,58,237,.16),rgba(37,99,235,.07))':'rgba(255,255,255,.03)',
+      cardBd:c.featured?'rgba(124,58,237,.55)':'rgba(255,255,255,.08)',
+      lift:c.featured?'box-shadow:0 24px 60px rgba(124,58,237,.22)':'',
+      btnBg:c.featured?'linear-gradient(135deg,var(--ac1),var(--ac2))':'rgba(255,255,255,.06)',
+      btnBd:c.featured?'none':'1px solid rgba(255,255,255,.14)',
+      btnLabel:c.price?t.consulting.book:t.consulting.cta,
+      book:()=>{ if(c.price){ this.addToCart(c.id); } else { this.scrollTo('contact'); } }}));
+    const process=[
+      {n:'01',title:t.consulting.p1t,desc:t.consulting.p1d},
+      {n:'02',title:t.consulting.p2t,desc:t.consulting.p2d},
+      {n:'03',title:t.consulting.p3t,desc:t.consulting.p3d},
+      {n:'04',title:t.consulting.p4t,desc:t.consulting.p4d},
+    ];
+
+    // checkout
+    const tax=Math.round(subtotal*0.11); const total=subtotal+tax;
+    const payMethods=[{k:'card',l:t.checkout.card,icon:'💳'},{k:'va',l:t.checkout.va,icon:'🏦'},{k:'ewallet',l:t.checkout.ewallet,icon:'📱'}]
+      .map(p=>({...p,active:this.state.payMethod===p.k,set:()=>this.setState({payMethod:p.k}),
+        bg:this.state.payMethod===p.k?'rgba(124,58,237,.12)':'rgba(255,255,255,.03)',bd:this.state.payMethod===p.k?'var(--ac1)':'rgba(255,255,255,.09)',
+        dot:this.state.payMethod===p.k?'var(--ac1)':'rgba(255,255,255,.25)',dotFill:this.state.payMethod===p.k?'var(--ac1)':'transparent'}));
+
+    return {
+      rootRef:this.rootRef, t, lang:L,
+      langLabel:L==='en'?'EN':'ID',
+      navLinks,
+      goHome:()=>this.go('home'), goLogin:()=>this.go('login'),
+      goCheckout:()=>this.go('checkout'), goConsulting:()=>this.go('consulting'),
+      goCatalog:()=>this.go('catalog'),
+      toggleLang:()=>this.toggleLang(),
+      openCart:()=>this.setState({cartOpen:true}), closeCart:()=>this.setState({cartOpen:false}),
+      stop:(e)=>e.stopPropagation(),
+      cartOpen:this.state.cartOpen, cartItems, cartCount, cartEmpty:cartItems.length===0,
+      cartHasItems:cartItems.length>0, subtotalFmt:this.rp(subtotal)||'Rp 0',
+
+      // page flags
+      isHome:this.state.page==='home', isCatalog:this.state.page==='catalog',
+      isDetail:this.state.page==='detail', isConsulting:this.state.page==='consulting',
+      isCheckout:this.state.page==='checkout', isLogin:this.state.page==='login',
+      showFooter:this.state.page!=='login'&&this.state.page!=='checkout',
+
+      // home
+      homeCourses, ebooks, features, stats,
+      goEbooks:()=>this.go('ebooks'), isEbooks:this.state.page==='ebooks',
+      ebChips, filteredEbooks, ebCount:filteredEbooks.length, ebNoResults:filteredEbooks.length===0,
+      ebq:this.state.ebq, setEbq:(e)=>this.setState({ebq:e.target.value}),
+      ebClear:()=>this.setState({ebq:'',ebcat:'all'}),
+      testimonial, testiDots,
+      testiPrev:()=>this.setState(s=>({testi:(s.testi-1+this.TESTI.length)%this.TESTI.length})),
+      testiNext:()=>this.setState(s=>({testi:(s.testi+1)%this.TESTI.length})),
+      faqs,
+      scrollAffiliate:()=>this.scrollTo('affiliate'), scrollContact:()=>this.scrollTo('contact'),
+      sent:this.state.sent, notSent:!this.state.sent, sendContact:(e)=>{ e.preventDefault(); this.setState({sent:true}); },
+
+      // catalog
+      catChips, levelChips, filtered, filteredCount:filtered.length,
+      noResults:filtered.length===0,
+      q:this.state.q, setQ:(e)=>this.setState({q:e.target.value}),
+      sort:this.state.sort, setSort:(e)=>this.setState({sort:e.target.value}), sortOptions,
+      clearFilters:()=>this.setState({q:'',cat:'all',level:'all',sort:'popular'}),
+
+      // detail
+      detail,
+
+      // consulting
+      consult, process,
+
+      // checkout
+      taxFmt:this.rp(tax)||'Rp 0', totalFmt:this.rp(total)||'Rp 0',
+      orderPlaced:this.state.orderPlaced, payMethods,
+      checkoutEmpty:!this.state.orderPlaced&&cartItems.length===0,
+      checkoutActive:!this.state.orderPlaced&&cartItems.length>0,
+      startCheckout:(e)=>this.startCheckout(e),
+      checkoutBtnLabel:this.state.checkoutLoading?(L==='id'?'Memproses…':'Processing…'):t.checkout.place,
+      checkoutMsg:this.state.checkoutMsg, hasCheckoutMsg:!!this.state.checkoutMsg,
+      resetOrder:()=>{ this.setState({orderPlaced:false,checkoutMsg:''}); this.go('catalog'); },
+
+      // auth
+      isLoginMode:this.state.authMode==='login', isRegisterMode:this.state.authMode==='register',
+      authTitle:this.state.authMode==='login'?t.auth.loginT:t.auth.regT,
+      authSub:this.state.authMode==='login'?t.auth.loginS:t.auth.regS,
+      authBtn:this.state.authMode==='login'?t.auth.login:t.auth.register,
+      authSwitchText:this.state.authMode==='login'?t.auth.noAcc:t.auth.haveAcc,
+      authSwitchLink:this.state.authMode==='login'?t.auth.signup:t.auth.signin,
+      authSwitch:()=>this.setState(s=>({authMode:s.authMode==='login'?'register':'login',authError:''})),
+      authSubmit:(e)=>this.authSubmitHandler(e),
+      authGoogle:()=>this.signInProvider('google'),
+      authFacebook:()=>this.signInProvider('facebook'),
+      googleEnabled:!!(this.state.providers&&this.state.providers.google),
+      facebookEnabled:!!(this.state.providers&&this.state.providers.facebook),
+      showOAuth:!!(this.state.providers&&(this.state.providers.google||this.state.providers.facebook)),
+      authError:this.state.authError, hasAuthError:!!this.state.authError,
+      authLoading:this.state.authLoading,
+      authBtnLabel:this.state.authLoading?'…':(this.state.authMode==='login'?t.auth.login:t.auth.register),
+
+      // session
+      isLoggedIn:!!this.state.user, notLoggedIn:!this.state.user,
+      userName:this.state.user?this.state.user.name:'',
+      navAuth:()=>{ if(this.state.user) this.signOut(); else this.go('login'); },
+      navAuthLabel:this.state.user?(this.state.user.name+' · '+(L==='id'?'Keluar':'Log out')):t.nav.login,
+    };
+  }
+}
+</script>
+</body>
+</html>

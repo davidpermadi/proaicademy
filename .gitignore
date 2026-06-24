@@ -1,0 +1,19 @@
+# Secrets / local env — never commit
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+
+# Dependencies
+node_modules/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Local sample artifact used only for testing uploads
+sample-ebook.pdf
+
+# Note: proai-env.js holds only PUBLIC values and is intentionally committed so the
+# app runs without a build step. Regenerate it with `npm run build`.

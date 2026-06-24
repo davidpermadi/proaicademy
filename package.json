@@ -1,0 +1,14 @@
+{
+  "name": "proaicademy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProAIcademy — bilingual (EN/ID) AI education platform landing page. Client-side React app rendered via the dc-runtime.",
+  "scripts": {
+    "build": "node scripts/generate-env.js",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
