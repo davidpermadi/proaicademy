@@ -6,8 +6,9 @@
 //  - Guest (no account): caller must supply an email; the order gets a secret access_token
 //    that is later exchanged for downloads via the download-ebook function.
 //
-// Required Edge Function secret: MIDTRANS_SERVER_KEY
-// Optional: MIDTRANS_IS_PRODUCTION ("true" | "false", default "false")
+// The Midtrans SERVER key is read from the MIDTRANS_SERVER_KEY env secret if present,
+// otherwise from Supabase Vault via public.get_app_secret('MIDTRANS_SERVER_KEY').
+// Sandbox vs production is auto-detected from the key prefix (SB-... = sandbox).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const cors = {
@@ -21,6 +22,15 @@ function json(obj: unknown, status = 200) {
 const TABLE_FOR: Record<string, string> = { course: "courses", ebook: "ebooks", consulting: "consulting_packages" };
 function isEmail(s: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
 
+async function resolveServerKey(admin: any): Promise<string> {
+  const env = Deno.env.get("MIDTRANS_SERVER_KEY");
+  if (env) return env;
+  try {
+    const { data } = await admin.rpc("get_app_secret", { p_name: "MIDTRANS_SERVER_KEY" });
+    return data ?? "";
+  } catch (_) { return ""; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -29,10 +39,11 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY") ?? "";
-    const IS_PROD = (Deno.env.get("MIDTRANS_IS_PRODUCTION") ?? "false") === "true";
-
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    const SERVER_KEY = await resolveServerKey(admin);
+    const envProd = Deno.env.get("MIDTRANS_IS_PRODUCTION");
+    const IS_PROD = envProd != null ? envProd === "true" : (!!SERVER_KEY && !/^SB-/i.test(SERVER_KEY));
 
     // Optional auth: if a real user JWT is present we attach the order to that user.
     let user: any = null;
@@ -87,7 +98,7 @@ Deno.serve(async (req) => {
     })));
 
     if (!SERVER_KEY) {
-      return json({ error: "Midtrans is not configured. Set the MIDTRANS_SERVER_KEY secret on this Edge Function.", order_id: order.id, access_token: accessToken }, 503);
+      return json({ error: "Midtrans is not configured. Set MIDTRANS_SERVER_KEY (env secret) or store it in Vault.", order_id: order.id, access_token: accessToken }, 503);
     }
 
     const base = IS_PROD ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";

@@ -208,17 +208,30 @@ Checkout ──► create-payment (Edge Function)        ──► Midtrans Snap
     presenting the matching paid `order_id` + `access_token`. Guests keep this receipt in
     `localStorage` so their **Download** button keeps working in that browser.
 
-**Setup (one-time):**
+**How the server key is stored.** The Edge Functions read `MIDTRANS_SERVER_KEY` from the
+function env first, then fall back to **Supabase Vault** via the `public.get_app_secret`
+accessor (service-role only). Sandbox vs production is auto-detected from the key prefix
+(`SB-...` = sandbox). This project's production server key is **already stored in Vault**.
+
+**Setup / rotate the server key** — pick either:
+```sql
+-- A) Supabase Vault (used here). Run in the SQL editor:
+select vault.create_secret('YOUR_MIDTRANS_SERVER_KEY', 'MIDTRANS_SERVER_KEY', 'Midtrans server key');
+-- to rotate later: select vault.update_secret(
+--   (select id from vault.secrets where name='MIDTRANS_SERVER_KEY'), 'NEW_KEY');
+```
+```bash
+# B) or as a regular Edge Function secret (takes precedence over Vault):
+supabase secrets set MIDTRANS_SERVER_KEY=YOUR_MIDTRANS_SERVER_KEY
+```
+
+**Other one-time steps:**
 1. Get your keys from the [Midtrans dashboard](https://dashboard.midtrans.com/) →
-   *Settings → Access Keys* (use **Sandbox** first): a **Server Key** and a **Client Key**.
-2. Set the server key as an Edge Function secret (Dashboard → *Edge Functions → Secrets*, or
-   CLI):
-   ```bash
-   supabase secrets set MIDTRANS_SERVER_KEY=YOUR_SERVER_KEY MIDTRANS_IS_PRODUCTION=false
-   ```
-3. Put the **Client Key** in [`proai-config.js`](proai-config.js) →
-   `window.PROAI_MIDTRANS.clientKey` (set `production: true` for live).
-4. In the Midtrans dashboard → *Settings → Configuration*, set the **Payment Notification
+   *Settings → Access Keys* (a **Server Key** and a **Client Key**; sandbox keys are prefixed
+   `SB-`).
+2. Put the **Client Key** in [`proai-env.js`](proai-env.js) → `MIDTRANS_CLIENT_KEY`
+   (committed here) or via `MIDTRANS_CLIENT_KEY` + `npm run build`.
+3. In the Midtrans dashboard → *Settings → Configuration*, set the **Payment Notification
    URL** to:
    `https://yiwgyovzohcwvqpwmesk.supabase.co/functions/v1/midtrans-webhook`
 

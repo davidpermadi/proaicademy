@@ -4,15 +4,23 @@
 // JWT but by Midtrans's signature_key:
 //   sha512(order_id + status_code + gross_amount + server_key)
 // On a successful payment it flips the order to "paid" and grants the buyer their
-// entitlements (which is what unlocks paid e-book downloads via storage RLS).
+// entitlements (which is what unlocks paid e-book downloads).
 //
-// Required Edge Function secret: MIDTRANS_SERVER_KEY
-// Set this function's URL as the Payment Notification URL in the Midtrans dashboard.
+// The server key is read from the MIDTRANS_SERVER_KEY env secret if present, otherwise
+// from Supabase Vault via public.get_app_secret('MIDTRANS_SERVER_KEY').
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 async function sha512(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function resolveServerKey(admin: any): Promise<string> {
+  const env = Deno.env.get("MIDTRANS_SERVER_KEY");
+  if (env) return env;
+  try {
+    const { data } = await admin.rpc("get_app_secret", { p_name: "MIDTRANS_SERVER_KEY" });
+    return data ?? "";
+  } catch (_) { return ""; }
 }
 
 Deno.serve(async (req) => {
@@ -20,7 +28,8 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY") ?? "";
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    const SERVER_KEY = await resolveServerKey(admin);
 
     const n = await req.json();
     const orderId = String(n.order_id ?? "");
@@ -32,8 +41,6 @@ Deno.serve(async (req) => {
     if (!SERVER_KEY) return new Response("server key not configured", { status: 503 });
     const expected = await sha512(orderId + statusCode + gross + SERVER_KEY);
     if (expected !== sig) return new Response("invalid signature", { status: 403 });
-
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const tStatus = String(n.transaction_status ?? "");
     const fraud = String(n.fraud_status ?? "");
@@ -52,8 +59,8 @@ Deno.serve(async (req) => {
     if (uErr) return new Response("db error: " + uErr.message, { status: 500 });
     if (!order) return new Response("order not found", { status: 404 });
 
-    // On successful payment, grant the buyer their entitlements.
-    if (status === "paid") {
+    // On successful payment, grant the buyer their entitlements (signed-in orders).
+    if (status === "paid" && order.user_id) {
       const { data: items } = await admin.from("order_items").select("*").eq("order_id", order.id);
       const rows = (items ?? []).map((it: any) => ({ user_id: order.user_id, product_type: it.product_type, product_id: it.product_id, order_id: order.id }));
       if (rows.length) {
