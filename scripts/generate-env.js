@@ -37,8 +37,8 @@ const pick = (k, def) => (process.env[k] != null ? process.env[k] : (fileEnv[k] 
 const DEFAULTS = {
   SUPABASE_URL: 'https://yiwgyovzohcwvqpwmesk.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_OMCnXrtMw-Dya2a1Z3g7HA_2GUzR0lb',
-  MIDTRANS_CLIENT_KEY: '',
-  MIDTRANS_IS_PRODUCTION: 'false',
+  MIDTRANS_CLIENT_KEY: 'Mid-client--uirV-i8Evuc_hW2', // production client key (browser-safe)
+  MIDTRANS_IS_PRODUCTION: 'true',
 };
 
 const env = {

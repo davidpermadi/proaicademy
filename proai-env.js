@@ -3,6 +3,6 @@
 window.PROAI_ENV = {
   "SUPABASE_URL": "https://yiwgyovzohcwvqpwmesk.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_OMCnXrtMw-Dya2a1Z3g7HA_2GUzR0lb",
-  "MIDTRANS_CLIENT_KEY": "",
-  "MIDTRANS_IS_PRODUCTION": false
+  "MIDTRANS_CLIENT_KEY": "Mid-client--uirV-i8Evuc_hW2",
+  "MIDTRANS_IS_PRODUCTION": true
 };
