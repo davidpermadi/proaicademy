@@ -1216,9 +1216,14 @@ class Component extends DCLogic {
     const cfg=window.PROAI_MIDTRANS||{};
     if(!cfg.clientKey){ return Promise.reject(new Error('not_configured')); }
     if(this._snapPromise) return this._snapPromise;
+    // Load Snap from the configured environment. Prefer the explicit MIDTRANS_IS_PRODUCTION
+    // flag (some accounts' sandbox keys don't carry the SB- prefix); fall back to the key prefix.
+    const isSandbox = (cfg.production === true || cfg.production === 'true') ? false
+                      : (cfg.production === false || cfg.production === 'false') ? true
+                      : /^SB-/i.test(cfg.clientKey);
     this._snapPromise=new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src=(cfg.production?'https://app.midtrans.com':'https://app.sandbox.midtrans.com')+'/snap/snap.js';
+      s.src=(isSandbox?'https://app.sandbox.midtrans.com':'https://app.midtrans.com')+'/snap/snap.js';
       s.setAttribute('data-client-key',cfg.clientKey);
       s.onload=()=>resolve(true);
       s.onerror=()=>reject(new Error('snap_load_failed'));

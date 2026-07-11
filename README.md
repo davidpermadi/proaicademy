@@ -208,21 +208,30 @@ Checkout ──► create-payment (Edge Function)        ──► Midtrans Snap
     presenting the matching paid `order_id` + `access_token`. Guests keep this receipt in
     `localStorage` so their **Download** button keeps working in that browser.
 
-**How the server key is stored.** The Edge Functions read `MIDTRANS_SERVER_KEY` from the
-function env first, then fall back to **Supabase Vault** via the `public.get_app_secret`
-accessor (service-role only). Sandbox vs production is auto-detected from the key prefix
-(`SB-...` = sandbox). This project's production server key is **already stored in Vault**.
+**How the server key + environment are stored.** The Edge Functions read
+`MIDTRANS_SERVER_KEY` and `MIDTRANS_IS_PRODUCTION` from the function env first, then fall back
+to **Supabase Vault** via the `public.get_app_secret` accessor (service-role only). If
+`MIDTRANS_IS_PRODUCTION` is unset, sandbox vs production is inferred from the key prefix
+(`SB-...` = sandbox) — but **set it explicitly** for accounts whose sandbox keys don't carry
+the `SB-` prefix (some do not). This project currently runs in **Sandbox** (`MIDTRANS_IS_PRODUCTION = false`
+in Vault, and in [`proai-env.js`](proai-env.js) for the browser so Snap loads the matching
+Sandbox popup). Flip both to `true` for live payments.
 
-**Setup / rotate the server key** — pick either:
+> The browser and the Edge Function must agree on the environment. If Snap says
+> **"Transaction not found"**, the token was created on one environment while the Snap popup /
+> client key is on the other — align `MIDTRANS_IS_PRODUCTION` on both sides.
+
+**Setup / rotate the key + environment** — pick either:
 ```sql
 -- A) Supabase Vault (used here). Run in the SQL editor:
 select vault.create_secret('YOUR_MIDTRANS_SERVER_KEY', 'MIDTRANS_SERVER_KEY', 'Midtrans server key');
+select vault.create_secret('false', 'MIDTRANS_IS_PRODUCTION', 'true=production, false=sandbox');
 -- to rotate later: select vault.update_secret(
 --   (select id from vault.secrets where name='MIDTRANS_SERVER_KEY'), 'NEW_KEY');
 ```
 ```bash
-# B) or as a regular Edge Function secret (takes precedence over Vault):
-supabase secrets set MIDTRANS_SERVER_KEY=YOUR_MIDTRANS_SERVER_KEY
+# B) or as regular Edge Function secrets (take precedence over Vault):
+supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=false
 ```
 
 **Other one-time steps:**
