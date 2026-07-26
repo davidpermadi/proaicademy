@@ -276,10 +276,19 @@ supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=true
 4. Make sure your Midtrans account is **activated for live transactions** and the payment
    methods you want are enabled in the production dashboard.
 
-#### Sale-notification e-mail
+#### Payment e-mails
 
-When a payment succeeds, `midtrans-webhook` e-mails the store owner the buyer's **name**,
-**contact number**, e-mail, and the ordered items — via [Resend](https://resend.com).
+When a payment succeeds, `midtrans-webhook` sends **two** e-mails via [Resend](https://resend.com):
+
+1. **To the store owner** — the buyer's **name**, **contact number**, e-mail, language, and the
+   ordered items, so the sales team can follow up. Reply-to is the buyer.
+2. **To the buyer** — a purchase confirmation: what they bought, the total, and that the sales
+   team will contact them as soon as possible. Reply-to is `SALE_NOTIFY_TO`.
+
+The buyer's copy is written in the language they were browsing in — `customer_lang` travels
+with the order from checkout (migration `0010`), so an Indonesian buyer gets Indonesian rather
+than everyone defaulting to English. Copy for both languages lives in `BUYER_COPY` in
+[`midtrans-webhook`](supabase/functions/midtrans-webhook/index.ts).
 
 The checkout form always had a *required* phone field, but nothing read it: the number was
 collected and discarded on every order. Migration `0008` adds `customer_name` /
@@ -300,21 +309,26 @@ was pasted but never run) is the usual reason the e-mail silently doesn't arrive
 select name, length(decrypted_secret) from vault.decrypted_secrets where name = 'RESEND_API_KEY';
 ```
 
-**Delivery guarantees.** The e-mail is sent **exactly once** per order — Midtrans legitimately
+**Delivery guarantees.** Each e-mail is sent **exactly once** per order — Midtrans legitimately
 sends several notifications for the same payment (`capture` then `settlement`, plus retries),
-so the send is claimed atomically via `owner_notified_at`. If the mail fails the claim is
-released, so the order stays visibly un-notified rather than silently marked done — and
-`notify_error` records why:
+so each send is claimed atomically by a conditional update on its own timestamp column, not a
+read-then-write. The two are tracked **separately**, so a buyer confirmation that fails can
+never hide behind a successful owner notification. A failure releases the claim and records
+why, leaving the order visibly un-sent rather than silently marked done:
 ```sql
-select midtrans_order_id, customer_name, customer_phone, gross_amount, notify_error
-from orders where status = 'paid' and owner_notified_at is null;
+select midtrans_order_id, customer_name, customer_phone, gross_amount,
+       notify_error, buyer_notify_error
+from orders
+where status = 'paid' and (owner_notified_at is null or buyer_notified_at is null);
 ```
-Common `notify_error` values: `RESEND_API_KEY not configured`, `resend 401: ...` (bad key),
-`resend 403: ...` (the `SALE_NOTIFY_FROM` domain isn't verified in Resend).
-A mail failure never fails the webhook — it always returns `200` once the signature checks
-out, because a non-2xx makes Midtrans retry and the payment must not depend on Resend being up.
+Common error values: `RESEND_API_KEY not configured`, `resend 401: ...` (bad key),
+`resend 403: ...` (the `SALE_NOTIFY_FROM` domain isn't verified in Resend),
+`no buyer e-mail on order` (buyer confirmation only).
+
+Neither failure ever fails the webhook: it returns `200` once the signature verifies, because a
+non-2xx makes Midtrans retry and the payment must not depend on Resend being up.
 If `RESEND_API_KEY` is missing entirely, payments and entitlements still process normally and
-the above query lists everything that went unannounced.
+the query above lists everything that went unannounced.
 
 Until a Client Key is configured, the checkout button reports that Midtrans isn't set up yet
 (no broken redirect). Everything else — orders, the webhook, and the entitlement gating —

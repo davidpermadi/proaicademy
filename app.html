@@ -1271,7 +1271,9 @@ class Component extends DCLogic {
     const ebookIds=items.filter(x=>x.product_type==='ebook').map(x=>x.product_id);
     this.setState({checkoutLoading:true,checkoutMsg:''});
     try{
-      const { data,error }=await sb.functions.invoke('create-payment',{ body:{ items, email, name, phone } });
+      // lang travels with the order so the confirmation e-mail is written in the language
+      // the buyer was actually browsing in.
+      const { data,error }=await sb.functions.invoke('create-payment',{ body:{ items, email, name, phone, lang:this.state.lang } });
       let payload=data;
       if(error){
         let msg=error.message;
