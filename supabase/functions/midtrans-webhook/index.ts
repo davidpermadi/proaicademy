@@ -160,9 +160,13 @@ Deno.serve(async (req) => {
             buyerEmail = u?.user?.email ?? "";
           }
           await sendSaleEmail(admin, order, items ?? [], buyerEmail);
+          await admin.from("orders").update({ notify_error: null }).eq("id", order.id);
         } catch (e) {
-          console.error("sale-email failed for " + orderId + ": " + String((e as Error)?.message ?? e));
-          await admin.from("orders").update({ owner_notified_at: null }).eq("id", order.id);
+          // Record the reason on the order: the Edge Function logs API only exposes
+          // request-level entries, so console output alone leaves this undiagnosable.
+          const why = String((e as Error)?.message ?? e).slice(0, 500);
+          console.error("sale-email failed for " + orderId + ": " + why);
+          await admin.from("orders").update({ owner_notified_at: null, notify_error: why }).eq("id", order.id);
         }
       }
     }

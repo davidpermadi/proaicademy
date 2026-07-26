@@ -294,14 +294,23 @@ select vault.create_secret('davidpermadi@proaicademy.id', 'SALE_NOTIFY_TO', 'Sal
 select vault.create_secret('ProAIcademy <sales@proaicademy.id>', 'SALE_NOTIFY_FROM', 'Sale notification sender');
 ```
 
+Confirm the key actually landed — `create_secret` in the wrong project (or a statement that
+was pasted but never run) is the usual reason the e-mail silently doesn't arrive:
+```sql
+select name, length(decrypted_secret) from vault.decrypted_secrets where name = 'RESEND_API_KEY';
+```
+
 **Delivery guarantees.** The e-mail is sent **exactly once** per order — Midtrans legitimately
 sends several notifications for the same payment (`capture` then `settlement`, plus retries),
 so the send is claimed atomically via `owner_notified_at`. If the mail fails the claim is
-released, so the order stays visibly un-notified rather than silently marked done:
+released, so the order stays visibly un-notified rather than silently marked done — and
+`notify_error` records why:
 ```sql
-select midtrans_order_id, customer_name, customer_phone, gross_amount
+select midtrans_order_id, customer_name, customer_phone, gross_amount, notify_error
 from orders where status = 'paid' and owner_notified_at is null;
 ```
+Common `notify_error` values: `RESEND_API_KEY not configured`, `resend 401: ...` (bad key),
+`resend 403: ...` (the `SALE_NOTIFY_FROM` domain isn't verified in Resend).
 A mail failure never fails the webhook — it always returns `200` once the signature checks
 out, because a non-2xx makes Midtrans retry and the payment must not depend on Resend being up.
 If `RESEND_API_KEY` is missing entirely, payments and entitlements still process normally and
