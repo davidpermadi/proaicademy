@@ -133,7 +133,9 @@
               <div style="padding:18px;display:flex;flex-direction:column;flex:1">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
                   <span style="font-size:12px;font-weight:600;color:#8a8aa3">{{ c.levelLabel }}</span>
-                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                  <sc-if value="{{ c.hasRating }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                  </sc-if>
                 </div>
                 <h3 style="font-family:'Sora';font-weight:700;font-size:17px;color:#fff;line-height:1.3;margin-bottom:8px;min-height:44px">{{ c.title }}</h3>
                 <p style="font-size:13px;color:#9a9ab0;line-height:1.5;margin-bottom:16px;flex:1">{{ c.desc }}</p>
@@ -340,7 +342,9 @@
               <div style="padding:18px;display:flex;flex-direction:column;flex:1">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
                   <span style="font-size:12px;font-weight:600;color:#8a8aa3">{{ c.levelLabel }}</span>
-                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                  <sc-if value="{{ c.hasRating }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }} <span style="color:#6a6a85;font-weight:500">({{ c.studentsFmt }})</span></span>
+                  </sc-if>
                 </div>
                 <h3 style="font-family:'Sora';font-weight:700;font-size:17px;color:#fff;line-height:1.3;margin-bottom:8px;min-height:44px">{{ c.title }}</h3>
                 <p style="font-size:13px;color:#9a9ab0;line-height:1.5;margin-bottom:16px;flex:1">{{ c.desc }}</p>
@@ -445,10 +449,18 @@
           <h1 style="font-family:'Sora';font-weight:800;font-size:clamp(28px,3.6vw,42px);color:#fff;letter-spacing:-1.2px;line-height:1.1;margin-bottom:16px">{{ detail.title }}</h1>
           <p style="color:#b0b0c6;font-size:17px;line-height:1.6;margin-bottom:20px">{{ detail.desc }}</p>
           <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;color:#9a9ab0;font-size:14px;margin-bottom:34px">
-            <span style="color:#fbbf24;font-weight:700">★ {{ detail.ratingFmt }} <span style="color:#8a8aa3;font-weight:500">({{ detail.reviewsFmt }})</span></span>
-            <span>📚 {{ detail.totalLessons }} {{ t.courses.lessons }}</span>
-            <span>⏱ {{ detail.hoursFmt }}h</span>
-            <span>👥 {{ detail.studentsFmt }} {{ t.courses.students }}</span>
+            <sc-if value="{{ detail.hasRating }}" hint-placeholder-val="{{ true }}">
+              <span style="color:#fbbf24;font-weight:700">★ {{ detail.ratingFmt }} <span style="color:#8a8aa3;font-weight:500">({{ detail.reviewsFmt }})</span></span>
+            </sc-if>
+            <sc-if value="{{ detail.hasLessons }}" hint-placeholder-val="{{ true }}">
+              <span>📚 {{ detail.totalLessons }} {{ t.courses.lessons }}</span>
+            </sc-if>
+            <sc-if value="{{ detail.hasHours }}" hint-placeholder-val="{{ true }}">
+              <span>⏱ {{ detail.hoursFmt }}h</span>
+            </sc-if>
+            <sc-if value="{{ detail.hasStudents }}" hint-placeholder-val="{{ true }}">
+              <span>👥 {{ detail.studentsFmt }} {{ t.courses.students }}</span>
+            </sc-if>
           </div>
 
           <!-- learn -->
@@ -471,7 +483,9 @@
               <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:13px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">
                 <span style="font-family:'Sora';font-weight:800;font-size:15px;color:var(--ac1);min-width:26px">0{{ m.i }}</span>
                 <span style="flex:1;font-weight:600;color:#fff;font-size:15px">{{ m.title }}</span>
-                <span style="color:#8a8aa3;font-size:13px">{{ m.lessons }} {{ t.courses.lessons }}</span>
+                <sc-if value="{{ m.hasLessons }}" hint-placeholder-val="{{ true }}">
+                  <span style="color:#8a8aa3;font-size:13px">{{ m.lessons }} {{ t.courses.lessons }}</span>
+                </sc-if>
               </div>
             </sc-for>
           </div>
@@ -532,7 +546,9 @@
                 <h3 style="font-family:'Sora';font-weight:700;font-size:15.5px;color:#fff;line-height:1.3;margin-bottom:10px;min-height:40px">{{ c.title }}</h3>
                 <div style="display:flex;align-items:center;justify-content:space-between">
                   <span style="font-family:'Sora';font-weight:800;font-size:16px;color:#fff">{{ c.priceFmt }}</span>
-                  <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }}</span>
+                  <sc-if value="{{ c.hasRating }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size:12.5px;font-weight:700;color:#fbbf24">★ {{ c.ratingFmt }}</span>
+                  </sc-if>
                 </div>
               </div>
             </div>
@@ -895,30 +911,36 @@ class Component extends DCLogic {
 
   // ---------- DATA ----------
   COURSES = [
-    {id:'c1',cat:'Foundations',level:'Beginner',lessons:24,hours:6.5,rating:4.9,reviews:842,students:3200,price:299000,old:499000,icon:'🧠',grad:'linear-gradient(135deg,#7c3aed,#4f46e5)',instructor:'Dr. Rina Pratama',tagKey:'best',
-      title:{en:'AI Foundations: Zero to Confident',id:'Dasar AI: Dari Nol ke Mahir'},
-      desc:{en:'Understand how modern AI works and start using it with confidence — no coding required.',id:'Pahami cara kerja AI modern dan mulai gunakan dengan percaya diri — tanpa coding.'}},
-    {id:'c2',cat:'Prompt Engineering',level:'Intermediate',lessons:32,hours:8,rating:4.9,reviews:1204,students:5400,price:449000,old:649000,icon:'✍️',grad:'linear-gradient(135deg,#2563eb,#06b6d4)',instructor:'Andi Wijaya',tagKey:'hot',
-      title:{en:'Prompt Engineering Mastery',id:'Mahir Prompt Engineering'},
-      desc:{en:'Write prompts that get reliable, high-quality results from ChatGPT, Claude & Gemini.',id:'Tulis prompt yang menghasilkan output andal & berkualitas dari ChatGPT, Claude & Gemini.'}},
-    {id:'c3',cat:'Generative AI',level:'Beginner',lessons:20,hours:5,rating:4.8,reviews:530,students:2700,price:349000,old:499000,icon:'🎨',grad:'linear-gradient(135deg,#db2777,#7c3aed)',instructor:'Sarah Lin',tagKey:'new',
-      title:{en:'Generative AI for Content Creators',id:'AI Generatif untuk Kreator Konten'},
-      desc:{en:'Create images, video scripts and social content 10x faster with generative tools.',id:'Buat gambar, naskah video & konten sosial 10x lebih cepat dengan tools generatif.'}},
-    {id:'c4',cat:'AI Automation',level:'Intermediate',lessons:28,hours:7.5,rating:4.9,reviews:690,students:1980,price:549000,old:799000,icon:'⚡',grad:'linear-gradient(135deg,#059669,#0891b2)',instructor:'Budi Santoso',tagKey:'hot',
-      title:{en:'AI Automation with No-Code',id:'Otomatisasi AI Tanpa Coding'},
-      desc:{en:'Connect AI to your tools and automate real workflows with Make, n8n & Zapier.',id:'Hubungkan AI ke tools-mu dan otomatiskan alur kerja nyata dengan Make, n8n & Zapier.'}},
-    {id:'c5',cat:'AI for Business',level:'Beginner',lessons:18,hours:4.5,rating:4.8,reviews:410,students:2300,price:599000,old:899000,icon:'📈',grad:'linear-gradient(135deg,#4f46e5,#2563eb)',instructor:'Dr. Rina Pratama',tagKey:'best',
-      title:{en:'AI for Business Leaders',id:'AI untuk Pemimpin Bisnis'},
-      desc:{en:'Build an AI roadmap, spot high-ROI use cases and lead adoption in your team.',id:'Susun roadmap AI, temukan use case ber-ROI tinggi & pimpin adopsi di timmu.'}},
-    {id:'c6',cat:'Machine Learning',level:'Advanced',lessons:40,hours:12,rating:4.9,reviews:980,students:1500,price:799000,old:1199000,icon:'🤖',grad:'linear-gradient(135deg,#ea580c,#db2777)',instructor:'Andi Wijaya',tagKey:'',
-      title:{en:'Machine Learning Essentials',id:'Esensi Machine Learning'},
-      desc:{en:'Go hands-on with Python to build, train and evaluate real ML models.',id:'Praktik langsung dengan Python untuk membangun, melatih & mengevaluasi model ML.'}},
-    {id:'c7',cat:'Generative AI',level:'Advanced',lessons:36,hours:10,rating:5.0,reviews:520,students:1120,price:899000,old:1299000,icon:'🛠️',grad:'linear-gradient(135deg,#7c3aed,#db2777)',instructor:'Sarah Lin',tagKey:'new',
-      title:{en:'Building AI Agents',id:'Membangun AI Agent'},
-      desc:{en:'Design autonomous agents that plan, use tools and complete multi-step tasks.',id:'Rancang agent otonom yang merencanakan, memakai tools & menyelesaikan tugas kompleks.'}},
-    {id:'c8',cat:'Prompt Engineering',level:'Beginner',lessons:16,hours:4,rating:4.7,reviews:360,students:2600,price:249000,old:399000,icon:'💬',grad:'linear-gradient(135deg,#0891b2,#2563eb)',instructor:'Budi Santoso',tagKey:'',
-      title:{en:'ChatGPT for Everyday Productivity',id:'ChatGPT untuk Produktivitas Harian'},
-      desc:{en:'Save hours every week using AI for email, planning, research and writing.',id:'Hemat berjam-jam tiap minggu pakai AI untuk email, perencanaan, riset & menulis.'}},
+    // Offline fallback — mirrors migration 0007_replace_course_catalog.sql. Keep the two in
+    // sync. rating/reviews/students stay 0 until there are real numbers; the cards hide the
+    // ★ and learner badges while they are.
+    {id:'c1',cat:'Prompt Engineering',level:'Beginner',lessons:0,hours:0,rating:0,reviews:0,students:0,price:150000,old:0,icon:'✍️',grad:'linear-gradient(135deg,#2563eb,#06b6d4)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Prompt Engineering',id:'Prompt Engineering'},
+      desc:{en:'Write prompts that get reliable, high-quality results instead of guesswork.',id:'Tulis prompt yang menghasilkan output andal dan berkualitas, bukan tebak-tebakan.'}},
+    {id:'c2',cat:'Claude Fundamentals',level:'Beginner',lessons:0,hours:0,rating:0,reviews:0,students:0,price:250000,old:0,icon:'👋',grad:'linear-gradient(135deg,#7c3aed,#4f46e5)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Claude Introduction',id:'Pengenalan Claude'},
+      desc:{en:'Get to know Claude from the ground up — what it does well, and how to start using it today.',id:'Kenali Claude dari nol — apa keunggulannya dan bagaimana mulai memakainya hari ini.'}},
+    {id:'c3',cat:'Claude Fundamentals',level:'Beginner',lessons:0,hours:0,rating:0,reviews:0,students:0,price:200000,old:0,icon:'🌱',grad:'linear-gradient(135deg,#059669,#0891b2)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Learn Claude - Beginner',id:'Belajar Claude - Pemula'},
+      desc:{en:'Your first hands-on steps with Claude: conversations, context and everyday tasks.',id:'Langkah praktis pertamamu dengan Claude: percakapan, konteks, dan tugas sehari-hari.'}},
+    {id:'c4',cat:'Claude Fundamentals',level:'Intermediate',lessons:0,hours:0,rating:0,reviews:0,students:0,price:300000,old:0,icon:'🚀',grad:'linear-gradient(135deg,#0891b2,#2563eb)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Learn Claude - Intermediate',id:'Belajar Claude - Menengah'},
+      desc:{en:'Go deeper with projects, long documents and repeatable workflows that save real hours.',id:'Selami proyek, dokumen panjang, dan alur kerja berulang yang benar-benar menghemat waktu.'}},
+    {id:'c5',cat:'Claude Fundamentals',level:'Advanced',lessons:0,hours:0,rating:0,reviews:0,students:0,price:400000,old:0,icon:'🧠',grad:'linear-gradient(135deg,#ea580c,#db2777)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Learn Claude - Advanced',id:'Belajar Claude - Mahir'},
+      desc:{en:'Advanced techniques: tools, structured output and multi-step work you can trust.',id:'Teknik lanjutan: tools, output terstruktur, dan pekerjaan multi-langkah yang bisa diandalkan.'}},
+    {id:'c6',cat:'AI for Business',level:'Intermediate',lessons:0,hours:0,rating:0,reviews:0,students:0,price:350000,old:0,icon:'📈',grad:'linear-gradient(135deg,#4f46e5,#2563eb)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Claude for Business Leader',id:'Claude untuk Pemimpin Bisnis'},
+      desc:{en:'Spot high-ROI use cases, build an adoption plan and lead AI rollout across your team.',id:'Temukan use case ber-ROI tinggi, susun rencana adopsi, dan pimpin penerapan AI di timmu.'}},
+    {id:'c7',cat:'AI for Business',level:'Intermediate',lessons:0,hours:0,rating:0,reviews:0,students:0,price:350000,old:0,icon:'💼',grad:'linear-gradient(135deg,#7c3aed,#db2777)',instructor:'ProAIcademy',tagKey:'rec',
+      title:{en:'Claude for Professional',id:'Claude untuk Profesional'},
+      desc:{en:'Put Claude to work on the things your job actually demands — research, writing, analysis and reporting.',id:'Manfaatkan Claude untuk kebutuhan pekerjaanmu — riset, menulis, analisis, dan pelaporan.'}},
+    {id:'c8',cat:'Build with Claude',level:'Advanced',lessons:0,hours:0,rating:0,reviews:0,students:0,price:500000,old:0,icon:'🛠️',grad:'linear-gradient(135deg,#7c3aed,#2563eb)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Build Professional Website using Claude Code',id:'Bangun Website Profesional dengan Claude Code'},
+      desc:{en:'Design, build and ship a real professional website end to end using Claude Code.',id:'Rancang, bangun, dan luncurkan website profesional sungguhan dari awal sampai selesai dengan Claude Code.'}},
+    {id:'c9',cat:'Build with Claude',level:'Beginner',lessons:0,hours:0,rating:0,reviews:0,students:0,price:250000,old:0,icon:'🎨',grad:'linear-gradient(135deg,#db2777,#7c3aed)',instructor:'ProAIcademy',tagKey:'',
+      title:{en:'Build Professional Portfolio using Claude',id:'Bangun Portofolio Profesional dengan Claude'},
+      desc:{en:'Turn your work into a portfolio that gets you hired — written, structured and polished with Claude.',id:'Ubah karyamu menjadi portofolio yang menarik perekrut — ditulis, disusun, dan dipoles bersama Claude.'}},
   ];
   EBOOKS = [
     {id:'eb1',cat:'Prompts',price:99000,old:149000,icon:'📕',grad:'linear-gradient(135deg,#7c3aed,#2563eb)',pages:120,rating:4.9,downloads:5400,title:{en:'The Prompt Playbook',id:'Buku Sakti Prompt'},desc:{en:'200+ copy-paste prompts for work & business.',id:'200+ prompt siap pakai untuk kerja & bisnis.'}},
@@ -968,7 +990,7 @@ class Component extends DCLogic {
   I18N = {
     en:{
       nav:{home:'Home',courses:'Courses',ebooks:'E-books',consulting:'Consulting',contact:'Contact',login:'Log in'},
-      tags:{best:'Bestseller',hot:'Trending',new:'New'},
+      tags:{best:'Bestseller',hot:'Trending',new:'New',rec:'Recommended'},
       levels:{Beginner:'Beginner',Intermediate:'Intermediate',Advanced:'Advanced',all:'All levels'},
       units:{session:'/ session',day:'/ day',custom:'Custom'},
       cart:{title:'Your cart',empty:'Your cart is empty',emptySub:'Browse courses to get started.',subtotal:'Subtotal',checkout:'Checkout',course:'Online course',ebook:'E-book',consult:'Consulting'},
@@ -1004,7 +1026,7 @@ class Component extends DCLogic {
     },
     id:{
       nav:{home:'Beranda',courses:'Kelas',ebooks:'E-book',consulting:'Konsultasi',contact:'Kontak',login:'Masuk'},
-      tags:{best:'Terlaris',hot:'Populer',new:'Baru'},
+      tags:{best:'Terlaris',hot:'Populer',new:'Baru',rec:'Rekomendasi'},
       levels:{Beginner:'Pemula',Intermediate:'Menengah',Advanced:'Mahir',all:'Semua level'},
       units:{session:'/ sesi',day:'/ hari',custom:'Custom'},
       cart:{title:'Keranjang',empty:'Keranjang kosong',emptySub:'Jelajahi kelas untuk mulai.',subtotal:'Subtotal',checkout:'Bayar',course:'Kelas online',ebook:'E-book',consult:'Konsultasi'},
@@ -1319,7 +1341,8 @@ class Component extends DCLogic {
     const en=['Getting started','Core concepts','Hands-on practice','Real-world projects','Going further'];
     const id=['Memulai','Konsep inti','Praktik langsung','Proyek dunia nyata','Tingkat lanjut'];
     const names=L==='en'?en:id; const base=Math.floor(c.lessons/5); const rem=c.lessons-base*5;
-    return names.map((n,i)=>({title:n,lessons:base+(i<rem?1:0),i:i+1}));
+    // lessons==0 means "not published yet" — the module outline still renders, without counts.
+    return names.map((n,i)=>{const n2=base+(i<rem?1:0); return {title:n,lessons:n2,hasLessons:!!n2,i:i+1};});
   }
 
   // ---------- RENDER ----------
@@ -1352,6 +1375,9 @@ class Component extends DCLogic {
     const card=(c)=>({...c, title:loc(c.title), desc:loc(c.desc),
       tag:c.tagKey?t.tags[c.tagKey]:'', hasTag:!!c.tagKey, levelLabel:t.levels[c.level],
       priceFmt:this.rp(c.price), oldFmt:this.rp(c.old), hasOld:!!c.old,
+      // A brand-new course has no rating or learners yet — hide the badges rather than
+      // advertising "★ 0 (0)".
+      hasRating:!!c.rating, hasStudents:!!c.students,
       studentsFmt:c.students.toLocaleString('id-ID'), ratingFmt:String(c.rating).replace('.',L==='id'?',':'.'),
       add:()=>this.addToCart(c.id), addClick:(e)=>{ e.stopPropagation(); this.addToCart(c.id); },
       view:()=>{ this.setState({detailId:c.id}); this.go('detail'); }});
@@ -1440,6 +1466,7 @@ class Component extends DCLogic {
     if(rel.length<3) rel=[...rel,...this.COURSES.filter(c=>c.id!==dRaw.id&&!rel.includes(c))];
     const detail={...card(dRaw), learn:this.genLearn(L), curriculum:this.genCurric(L,dRaw),
       reviewsFmt:dRaw.reviews.toLocaleString('id-ID'), hoursFmt:String(dRaw.hours).replace('.',L==='id'?',':'.'),
+      hasLessons:!!dRaw.lessons, hasHours:!!Number(dRaw.hours),
       totalLessons:dRaw.lessons, related:rel.slice(0,3).map(card),
       includes:[t.detail.i1,t.detail.i2,t.detail.i3,t.detail.i5,t.detail.i4],
       discount:dRaw.old?Math.round((1-dRaw.price/dRaw.old)*100):0};
