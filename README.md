@@ -50,8 +50,8 @@ Copy [`.env.example`](.env.example) → `.env` and adjust, then `npm run build`.
 | --- | --- | --- | --- |
 | `SUPABASE_URL` | frontend (`npm run build`) | ✅ | Supabase project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | frontend (`npm run build`) | ✅ | Supabase anon/publishable key |
-| `MIDTRANS_CLIENT_KEY` | frontend (`npm run build`) | ✅ | Midtrans Snap client key |
-| `MIDTRANS_IS_PRODUCTION` | frontend **and** function secret | ✅ / — | `false` = sandbox, `true` = live |
+| `MIDTRANS_CLIENT_KEY` | frontend (`npm run build`) | ✅ | Midtrans Snap client key (production) |
+| `MIDTRANS_IS_PRODUCTION` | frontend **and** function secret | ✅ / — | `true` = live (current), `false` = sandbox |
 | `PORT` | local server | — | Static server port (default 3000) |
 | `MIDTRANS_SERVER_KEY` | **Edge Function secret only** | ❌ secret | Server key for Snap + webhook signature |
 
@@ -208,41 +208,60 @@ Checkout ──► create-payment (Edge Function)        ──► Midtrans Snap
     presenting the matching paid `order_id` + `access_token`. Guests keep this receipt in
     `localStorage` so their **Download** button keeps working in that browser.
 
-**How the server key + environment are stored.** The Edge Functions read
-`MIDTRANS_SERVER_KEY` and `MIDTRANS_IS_PRODUCTION` from the function env first, then fall back
-to **Supabase Vault** via the `public.get_app_secret` accessor (service-role only). If
-`MIDTRANS_IS_PRODUCTION` is unset, sandbox vs production is inferred from the key prefix
-(`SB-...` = sandbox) — but **set it explicitly** for accounts whose sandbox keys don't carry
-the `SB-` prefix (some do not). This project currently runs in **Sandbox** (`MIDTRANS_IS_PRODUCTION = false`
-in Vault, and in [`proai-env.js`](proai-env.js) for the browser so Snap loads the matching
-Sandbox popup). Flip both to `true` for live payments.
+#### Environment: PRODUCTION (live payments)
 
-> The browser and the Edge Function must agree on the environment. If Snap says
-> **"Transaction not found"**, the token was created on one environment while the Snap popup /
-> client key is on the other — align `MIDTRANS_IS_PRODUCTION` on both sides.
+This project is configured for **Midtrans Production**. Three things must all name the *same*
+environment, or checkout breaks:
+
+| Where | Setting | Value |
+|---|---|---|
+| Browser ([`proai-env.js`](proai-env.js)) | `MIDTRANS_CLIENT_KEY` | production client key (`Mid-client-…`) |
+| Browser ([`proai-env.js`](proai-env.js)) | `MIDTRANS_IS_PRODUCTION` | `true` |
+| Edge Function (Vault / function env) | `MIDTRANS_SERVER_KEY` | production server key (`Mid-server-…`) |
+| Edge Function (Vault / function env) | `MIDTRANS_IS_PRODUCTION` | `true` |
+
+**Do not infer the environment from the key prefix.** Midtrans sandbox keys are normally
+prefixed `SB-`, but **this account's sandbox keys are not** — a `Mid-server-…` key here may
+still be a sandbox key. The code therefore always uses the explicit `MIDTRANS_IS_PRODUCTION`
+flag (production is the default; only an explicit `false` selects sandbox), and prefix
+sniffing survives only as a last resort when the flag is missing entirely.
+
+> **Self-correcting popup.** `create-payment` returns `is_production` alongside the Snap token,
+> and the browser loads `snap.js` from *that* environment rather than from its own local flag.
+> This is what prevents Midtrans's **"Transaction not found"** error, which happens when the
+> token is minted on one environment and the popup opened on the other.
+>
+> A `401` from Midtrans (surfaced at checkout as *"Midtrans rejected the server key for the
+> production environment"*) means the opposite mismatch: the server key belongs to the other
+> environment.
 
 **Setup / rotate the key + environment** — pick either:
 ```sql
 -- A) Supabase Vault (used here). Run in the SQL editor:
 select vault.create_secret('YOUR_MIDTRANS_SERVER_KEY', 'MIDTRANS_SERVER_KEY', 'Midtrans server key');
-select vault.create_secret('false', 'MIDTRANS_IS_PRODUCTION', 'true=production, false=sandbox');
--- to rotate later: select vault.update_secret(
---   (select id from vault.secrets where name='MIDTRANS_SERVER_KEY'), 'NEW_KEY');
+select vault.create_secret('true', 'MIDTRANS_IS_PRODUCTION', 'true=production, false=sandbox');
+-- to rotate later (e.g. sandbox key -> production key):
+select vault.update_secret(
+  (select id from vault.secrets where name='MIDTRANS_SERVER_KEY'), 'NEW_KEY');
 ```
 ```bash
 # B) or as regular Edge Function secrets (take precedence over Vault):
-supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=false
+supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=true
 ```
 
 **Other one-time steps:**
 1. Get your keys from the [Midtrans dashboard](https://dashboard.midtrans.com/) →
-   *Settings → Access Keys* (a **Server Key** and a **Client Key**; sandbox keys are prefixed
-   `SB-`).
+   switch the environment toggle to **Production**, then *Settings → Access Keys*
+   (a **Server Key** and a **Client Key**).
 2. Put the **Client Key** in [`proai-env.js`](proai-env.js) → `MIDTRANS_CLIENT_KEY`
    (committed here) or via `MIDTRANS_CLIENT_KEY` + `npm run build`.
-3. In the Midtrans dashboard → *Settings → Configuration*, set the **Payment Notification
-   URL** to:
+3. In the Midtrans **Production** dashboard → *Settings → Configuration*, set the **Payment
+   Notification URL** to:
    `https://yiwgyovzohcwvqpwmesk.supabase.co/functions/v1/midtrans-webhook`
+   (the sandbox dashboard has its own separate copy of this setting — production payments
+   are notified only if the *production* one is set, otherwise orders stay `pending` forever).
+4. Make sure your Midtrans account is **activated for live transactions** and the payment
+   methods you want are enabled in the production dashboard.
 
 Until a Client Key is configured, the checkout button reports that Midtrans isn't set up yet
 (no broken redirect). Everything else — orders, the webhook, and the entitlement gating —
@@ -253,6 +272,10 @@ is already deployed and working.
 > webhook marked it paid, then `download-ebook` returned the file with the correct receipt
 > token (HTTP 200) while a wrong token was rejected. The **Download** button works for guests
 > straight from the e-books page.
+>
+> **Production verified:** `create-payment` minted a live Snap token on `app.midtrans.com`
+> (`is_production: true`), and the production Snap page resolved it — correct merchant name,
+> amount and live VA channels, no *"Transaction not found"*. Test order removed afterwards.
 
 ### Re-creating the backend from scratch
 

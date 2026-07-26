@@ -6,10 +6,13 @@
 //  - Guest (no account): caller must supply an email; the order gets a secret access_token.
 //
 // Config (env secret first, then Supabase Vault):
-//   MIDTRANS_SERVER_KEY     — required.
-//   MIDTRANS_IS_PRODUCTION  — "true"|"false". If unset, inferred from the key prefix
-//                             (SB-... = sandbox). Set it explicitly for accounts whose
-//                             sandbox keys don't carry the SB- prefix.
+//   MIDTRANS_SERVER_KEY     — required. Must belong to the SAME environment as the flag below
+//                             and as the browser's MIDTRANS_CLIENT_KEY.
+//   MIDTRANS_IS_PRODUCTION  — "true"|"false". This project runs in PRODUCTION (live payments),
+//                             so production is the default: only an explicit "false" (or an
+//                             SB- prefixed key when the flag is unset) selects sandbox.
+//                             Prefix sniffing is a last resort — this account's sandbox keys
+//                             don't carry the SB- prefix either.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -27,7 +30,7 @@ Deno.serve(async (req) => {
 
     const SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY") || (await vaultGet(admin, "MIDTRANS_SERVER_KEY")) || "";
     const prodFlag = Deno.env.get("MIDTRANS_IS_PRODUCTION") ?? (await vaultGet(admin, "MIDTRANS_IS_PRODUCTION"));
-    const IS_PROD = prodFlag != null ? String(prodFlag) === "true" : (!!SERVER_KEY && !/^SB-/i.test(SERVER_KEY));
+    const IS_PROD = prodFlag != null ? String(prodFlag).trim().toLowerCase() !== "false" : !/^SB-/i.test(SERVER_KEY);
 
     let user: any = null; const authHeader = req.headers.get("Authorization") ?? "";
     if (authHeader) { const uc = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } }); const { data } = await uc.auth.getUser(); user = data?.user ?? null; }
@@ -54,7 +57,9 @@ Deno.serve(async (req) => {
     const base = IS_PROD ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";
     const snapRes = await fetch(`${base}/snap/v1/transactions`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic " + btoa(SERVER_KEY + ":") }, body: JSON.stringify({ transaction_details: { order_id: midOrderId, gross_amount: gross }, item_details: lineItems.map((li) => ({ id: li.id, price: li.price, quantity: li.quantity, name: li.name })), customer_details: { email, first_name: fullName || email }, credit_card: { secure: true } }) });
     const snap = await snapRes.json();
-    if (!snapRes.ok) { await admin.from("orders").update({ status: "failed", raw_notification: snap }).eq("id", order.id); return json({ error: "Midtrans error", detail: snap }, 502); }
+    // A 401 here almost always means the server key belongs to the other environment
+    // (a sandbox key sent to app.midtrans.com, or vice-versa).
+    if (!snapRes.ok) { await admin.from("orders").update({ status: "failed", raw_notification: snap }).eq("id", order.id); const hint = snapRes.status === 401 ? ` Midtrans rejected the server key for the ${IS_PROD ? "production" : "sandbox"} environment — check that MIDTRANS_SERVER_KEY and MIDTRANS_IS_PRODUCTION refer to the same environment.` : ""; return json({ error: "Midtrans error." + hint, detail: snap, is_production: IS_PROD }, 502); }
     await admin.from("orders").update({ snap_token: snap.token }).eq("id", order.id);
     return json({ token: snap.token, redirect_url: snap.redirect_url, order_id: order.id, midtrans_order_id: midOrderId, access_token: accessToken, is_production: IS_PROD });
   } catch (e) { return json({ error: String((e as Error)?.message ?? e) }, 500); }

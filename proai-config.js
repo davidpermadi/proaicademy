@@ -26,9 +26,11 @@
 
   // Midtrans (payment gateway). The CLIENT key is safe to expose in the browser;
   // the SERVER key lives only as an Edge Function secret (MIDTRANS_SERVER_KEY).
+  // Production is the default: sandbox only when MIDTRANS_IS_PRODUCTION is explicitly false.
+  // (Don't infer from the key prefix — this account's sandbox keys lack the SB- prefix too.)
   window.PROAI_MIDTRANS = {
     clientKey: ENV.MIDTRANS_CLIENT_KEY || '',     // blank = checkout shows "not configured"
-    production: ENV.MIDTRANS_IS_PRODUCTION === true || ENV.MIDTRANS_IS_PRODUCTION === 'true',
+    production: !(ENV.MIDTRANS_IS_PRODUCTION === false || ENV.MIDTRANS_IS_PRODUCTION === 'false'),
   };
 
   window.proaiSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

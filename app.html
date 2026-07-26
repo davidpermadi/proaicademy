@@ -1211,16 +1211,18 @@ class Component extends DCLogic {
 
   // ---------- MIDTRANS: CHECKOUT ----------
   // Lazily load Midtrans Snap.js using the configured client key.
-  ensureSnap(){
+  // serverIsProduction (optional) is the environment create-payment actually minted the
+  // Snap token on. It wins over the local flag: loading the popup from the other
+  // environment is what produces Midtrans's "Transaction not found".
+  ensureSnap(serverIsProduction){
     if(window.snap) return Promise.resolve(true);
     const cfg=window.PROAI_MIDTRANS||{};
     if(!cfg.clientKey){ return Promise.reject(new Error('not_configured')); }
     if(this._snapPromise) return this._snapPromise;
-    // Load Snap from the configured environment. Prefer the explicit MIDTRANS_IS_PRODUCTION
-    // flag (some accounts' sandbox keys don't carry the SB- prefix); fall back to the key prefix.
-    const isSandbox = (cfg.production === true || cfg.production === 'true') ? false
-                      : (cfg.production === false || cfg.production === 'false') ? true
-                      : /^SB-/i.test(cfg.clientKey);
+    // Never infer the environment from the key prefix — this account's sandbox keys don't
+    // carry the SB- prefix either. Default to production when nothing says otherwise.
+    const flag = (serverIsProduction != null) ? serverIsProduction : cfg.production;
+    const isSandbox = (flag === false || flag === 'false');
     this._snapPromise=new Promise((resolve,reject)=>{
       const s=document.createElement('script');
       s.src=(isSandbox?'https://app.sandbox.midtrans.com':'https://app.midtrans.com')+'/snap/snap.js';
@@ -1254,7 +1256,7 @@ class Component extends DCLogic {
         throw new Error(msg);
       }
       if(!payload||!payload.token) throw new Error((payload&&payload.error)||'No payment token returned');
-      await this.ensureSnap();
+      await this.ensureSnap(payload.is_production);
       const purchase={ orderId:payload.order_id, accessToken:payload.access_token, ebookIds, isGuest:!this.state.user };
       window.snap.pay(payload.token,{
         onSuccess:()=>this.afterPayment(purchase),
