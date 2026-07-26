@@ -13,6 +13,13 @@
 //                             SB- prefixed key when the flag is unset) selects sandbox.
 //                             Prefix sniffing is a last resort — this account's sandbox keys
 //                             don't carry the SB- prefix either.
+//   MIDTRANS_NOTIFICATION_URL — optional. Where Midtrans should POST payment notifications.
+//                             Defaults to this project's own midtrans-webhook. Sent per
+//                             transaction as the X-Override-Notification header, which
+//                             REPLACES whatever the Midtrans dashboard has configured — so a
+//                             blank/stale dashboard field can no longer strand paid orders in
+//                             "pending". Midtrans accepts up to 3 comma-separated URLs.
+//                             https://docs.midtrans.com/docs/https-notification-webhooks
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -31,6 +38,7 @@ Deno.serve(async (req) => {
     const SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY") || (await vaultGet(admin, "MIDTRANS_SERVER_KEY")) || "";
     const prodFlag = Deno.env.get("MIDTRANS_IS_PRODUCTION") ?? (await vaultGet(admin, "MIDTRANS_IS_PRODUCTION"));
     const IS_PROD = prodFlag != null ? String(prodFlag).trim().toLowerCase() !== "false" : !/^SB-/i.test(SERVER_KEY);
+    const NOTIFY_URL = (Deno.env.get("MIDTRANS_NOTIFICATION_URL") || (await vaultGet(admin, "MIDTRANS_NOTIFICATION_URL")) || `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/midtrans-webhook`).trim();
 
     let user: any = null; const authHeader = req.headers.get("Authorization") ?? "";
     if (authHeader) { const uc = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } }); const { data } = await uc.auth.getUser(); user = data?.user ?? null; }
@@ -55,12 +63,12 @@ Deno.serve(async (req) => {
     if (!SERVER_KEY) return json({ error: "Midtrans is not configured. Set MIDTRANS_SERVER_KEY (env secret) or store it in Vault.", order_id: order.id, access_token: accessToken }, 503);
 
     const base = IS_PROD ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";
-    const snapRes = await fetch(`${base}/snap/v1/transactions`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic " + btoa(SERVER_KEY + ":") }, body: JSON.stringify({ transaction_details: { order_id: midOrderId, gross_amount: gross }, item_details: lineItems.map((li) => ({ id: li.id, price: li.price, quantity: li.quantity, name: li.name })), customer_details: { email, first_name: fullName || email }, credit_card: { secure: true } }) });
+    const snapRes = await fetch(`${base}/snap/v1/transactions`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic " + btoa(SERVER_KEY + ":"), "X-Override-Notification": NOTIFY_URL }, body: JSON.stringify({ transaction_details: { order_id: midOrderId, gross_amount: gross }, item_details: lineItems.map((li) => ({ id: li.id, price: li.price, quantity: li.quantity, name: li.name })), customer_details: { email, first_name: fullName || email }, credit_card: { secure: true } }) });
     const snap = await snapRes.json();
     // A 401 here almost always means the server key belongs to the other environment
     // (a sandbox key sent to app.midtrans.com, or vice-versa).
     if (!snapRes.ok) { await admin.from("orders").update({ status: "failed", raw_notification: snap }).eq("id", order.id); const hint = snapRes.status === 401 ? ` Midtrans rejected the server key for the ${IS_PROD ? "production" : "sandbox"} environment — check that MIDTRANS_SERVER_KEY and MIDTRANS_IS_PRODUCTION refer to the same environment.` : ""; return json({ error: "Midtrans error." + hint, detail: snap, is_production: IS_PROD }, 502); }
     await admin.from("orders").update({ snap_token: snap.token }).eq("id", order.id);
-    return json({ token: snap.token, redirect_url: snap.redirect_url, order_id: order.id, midtrans_order_id: midOrderId, access_token: accessToken, is_production: IS_PROD });
+    return json({ token: snap.token, redirect_url: snap.redirect_url, order_id: order.id, midtrans_order_id: midOrderId, access_token: accessToken, is_production: IS_PROD, notification_url: NOTIFY_URL });
   } catch (e) { return json({ error: String((e as Error)?.message ?? e) }, 500); }
 });

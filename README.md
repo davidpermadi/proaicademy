@@ -54,6 +54,7 @@ Copy [`.env.example`](.env.example) → `.env` and adjust, then `npm run build`.
 | `MIDTRANS_IS_PRODUCTION` | frontend **and** function secret | ✅ / — | `true` = live (current), `false` = sandbox |
 | `PORT` | local server | — | Static server port (default 3000) |
 | `MIDTRANS_SERVER_KEY` | **Edge Function secret only** | ❌ secret | Server key for Snap + webhook signature |
+| `MIDTRANS_NOTIFICATION_URL` | Edge Function (optional) | — | Overrides the webhook URL sent to Midtrans; defaults to this project's own |
 
 > `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` are injected into Edge
 > Functions automatically — never set those yourself.
@@ -235,6 +236,15 @@ sniffing survives only as a last resort when the flag is missing entirely.
 > production environment"*) means the opposite mismatch: the server key belongs to the other
 > environment.
 
+> **Self-declaring webhook.** `create-payment` sends the notification URL with every
+> transaction as the `X-Override-Notification` header, which **replaces** whatever the Midtrans
+> dashboard has configured. The dashboard's *Payment Notification URL* field therefore does not
+> need to be set at all — a blank or stale one can no longer leave paid orders stuck in
+> `pending`. It defaults to this project's own `midtrans-webhook`, derived from `SUPABASE_URL`
+> so it cannot drift; override it with `MIDTRANS_NOTIFICATION_URL` (env secret or Vault) if you
+> ever need to point it elsewhere. Midtrans accepts up to 3 comma-separated URLs.
+> See [Override Notification URL](https://docs.midtrans.com/docs/https-notification-webhooks).
+
 **Setup / rotate the key + environment** — pick either:
 ```sql
 -- A) Supabase Vault (used here). Run in the SQL editor:
@@ -255,11 +265,12 @@ supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=true
    (a **Server Key** and a **Client Key**).
 2. Put the **Client Key** in [`proai-env.js`](proai-env.js) → `MIDTRANS_CLIENT_KEY`
    (committed here) or via `MIDTRANS_CLIENT_KEY` + `npm run build`.
-3. In the Midtrans **Production** dashboard → *Settings → Configuration*, set the **Payment
-   Notification URL** to:
+3. The **Payment Notification URL** needs no dashboard setup — `create-payment` sends it per
+   transaction (see *Self-declaring webhook* above). You may still set it in the Midtrans
+   **Production** dashboard → *Settings → Configuration* as a belt-and-braces backstop, and
+   for transactions created outside this app:
    `https://yiwgyovzohcwvqpwmesk.supabase.co/functions/v1/midtrans-webhook`
-   (the sandbox dashboard has its own separate copy of this setting — production payments
-   are notified only if the *production* one is set, otherwise orders stay `pending` forever).
+   (note the sandbox dashboard keeps its own separate copy of this field).
 4. Make sure your Midtrans account is **activated for live transactions** and the payment
    methods you want are enabled in the production dashboard.
 
@@ -275,7 +286,10 @@ is already deployed and working.
 >
 > **Production verified:** `create-payment` minted a live Snap token on `app.midtrans.com`
 > (`is_production: true`), and the production Snap page resolved it — correct merchant name,
-> amount and live VA channels, no *"Transaction not found"*. Test order removed afterwards.
+> amount and live VA channels, no *"Transaction not found"*. Midtrans accepted the
+> `X-Override-Notification` header, and a settlement notification signed with the production
+> server key drove `midtrans-webhook` to flip the order to `paid` (HTTP 200), while a forged
+> signature was rejected (HTTP 403). Test orders removed afterwards.
 
 ### Re-creating the backend from scratch
 
