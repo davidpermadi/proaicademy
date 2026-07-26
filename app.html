@@ -1263,6 +1263,7 @@ class Component extends DCLogic {
     const form=e&&e.target;
     const email=(form&&form.email&&form.email.value||'').trim();
     const name=(form&&form.fullname&&form.fullname.value||'').trim();
+    const phone=(form&&form.phone&&form.phone.value||'').trim();
     const items=this.state.cart
       .map(ci=>({product_type:this.productType(ci.id),product_id:ci.id,qty:ci.qty}))
       .filter(x=>x.product_type);
@@ -1270,7 +1271,7 @@ class Component extends DCLogic {
     const ebookIds=items.filter(x=>x.product_type==='ebook').map(x=>x.product_id);
     this.setState({checkoutLoading:true,checkoutMsg:''});
     try{
-      const { data,error }=await sb.functions.invoke('create-payment',{ body:{ items, email, name } });
+      const { data,error }=await sb.functions.invoke('create-payment',{ body:{ items, email, name, phone } });
       let payload=data;
       if(error){
         let msg=error.message;

@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
     if (!items.length) return json({ error: "Cart is empty" }, 400);
     const email = String((user && user.email) || body.email || "").trim();
     const fullName = String((user && user.user_metadata && user.user_metadata.full_name) || body.name || "").trim();
+    // Free-form: phone formats vary too much in ID to validate usefully. Capped so a hostile
+    // client can't stuff the column, and stored purely so the owner can contact the buyer.
+    const phone = String(body.phone ?? "").trim().slice(0, 40);
     if (!user && !isEmail(email)) return json({ error: "A valid email is required for guest checkout" }, 400);
 
     const lineItems: any[] = []; let gross = 0;
@@ -56,7 +59,7 @@ Deno.serve(async (req) => {
 
     const midOrderId = "PROAI-" + crypto.randomUUID().slice(0, 18);
     const accessToken = user ? null : crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
-    const { data: order, error: oErr } = await admin.from("orders").insert({ user_id: user ? user.id : null, guest_email: user ? null : email, access_token: accessToken, midtrans_order_id: midOrderId, gross_amount: gross, status: "pending" }).select().single();
+    const { data: order, error: oErr } = await admin.from("orders").insert({ user_id: user ? user.id : null, guest_email: user ? null : email, access_token: accessToken, midtrans_order_id: midOrderId, gross_amount: gross, status: "pending", customer_name: fullName || null, customer_phone: phone || null }).select().single();
     if (oErr || !order) return json({ error: "Could not create order", detail: oErr?.message }, 500);
     await admin.from("order_items").insert(lineItems.map((li) => ({ order_id: order.id, product_type: li.product_type, product_id: li.product_id, title: li.name, unit_price: li.price, qty: li.quantity })));
 

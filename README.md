@@ -55,6 +55,8 @@ Copy [`.env.example`](.env.example) → `.env` and adjust, then `npm run build`.
 | `PORT` | local server | — | Static server port (default 3000) |
 | `MIDTRANS_SERVER_KEY` | **Edge Function secret only** | ❌ secret | Server key for Snap + webhook signature |
 | `MIDTRANS_NOTIFICATION_URL` | Edge Function (optional) | — | Overrides the webhook URL sent to Midtrans; defaults to this project's own |
+| `RESEND_API_KEY` | **Edge Function secret only** | ❌ secret | Sends the sale-notification e-mail on a successful payment |
+| `SALE_NOTIFY_TO` / `SALE_NOTIFY_FROM` | Edge Function (optional) | — | Recipient / sender of that e-mail |
 
 > `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` are injected into Edge
 > Functions automatically — never set those yourself.
@@ -273,6 +275,37 @@ supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=true
    (note the sandbox dashboard keeps its own separate copy of this field).
 4. Make sure your Midtrans account is **activated for live transactions** and the payment
    methods you want are enabled in the production dashboard.
+
+#### Sale-notification e-mail
+
+When a payment succeeds, `midtrans-webhook` e-mails the store owner the buyer's **name**,
+**contact number**, e-mail, and the ordered items — via [Resend](https://resend.com).
+
+The checkout form always had a *required* phone field, but nothing read it: the number was
+collected and discarded on every order. Migration `0008` adds `customer_name` /
+`customer_phone` to `orders` and the checkout now sends both, so the notification has real
+contact details to carry.
+
+**Setup:** verify `proaicademy.id` in Resend (DNS records), create an API key, then:
+```sql
+select vault.create_secret('re_your_api_key', 'RESEND_API_KEY', 'Resend key for sale notifications');
+-- optional, these have sensible defaults:
+select vault.create_secret('davidpermadi@proaicademy.id', 'SALE_NOTIFY_TO', 'Sale notification recipient');
+select vault.create_secret('ProAIcademy <sales@proaicademy.id>', 'SALE_NOTIFY_FROM', 'Sale notification sender');
+```
+
+**Delivery guarantees.** The e-mail is sent **exactly once** per order — Midtrans legitimately
+sends several notifications for the same payment (`capture` then `settlement`, plus retries),
+so the send is claimed atomically via `owner_notified_at`. If the mail fails the claim is
+released, so the order stays visibly un-notified rather than silently marked done:
+```sql
+select midtrans_order_id, customer_name, customer_phone, gross_amount
+from orders where status = 'paid' and owner_notified_at is null;
+```
+A mail failure never fails the webhook — it always returns `200` once the signature checks
+out, because a non-2xx makes Midtrans retry and the payment must not depend on Resend being up.
+If `RESEND_API_KEY` is missing entirely, payments and entitlements still process normally and
+the above query lists everything that went unannounced.
 
 Until a Client Key is configured, the checkout button reports that Midtrans isn't set up yet
 (no broken redirect). Everything else — orders, the webhook, and the entitlement gating —
