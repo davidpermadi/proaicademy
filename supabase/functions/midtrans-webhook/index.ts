@@ -125,6 +125,11 @@ const BUYER_COPY = {
     orderLabel: "Order",
     total: "Total",
     paidVia: "Paid via",
+    detailsTitle: "Your details",
+    nameLabel: "Full name",
+    emailLabel: "Email",
+    phoneLabel: "Phone",
+    notProvided: "(not provided)",
     contact: "Our sales team will contact you as soon as possible with your access details and next steps.",
     help: "Questions in the meantime? Just reply to this e-mail.",
     signoff: "— The ProAIcademy team",
@@ -138,6 +143,11 @@ const BUYER_COPY = {
     orderLabel: "Pesanan",
     total: "Total",
     paidVia: "Dibayar via",
+    detailsTitle: "Data kamu",
+    nameLabel: "Nama lengkap",
+    emailLabel: "Email",
+    phoneLabel: "Telepon",
+    notProvided: "(tidak diisi)",
     contact: "Tim sales kami akan segera menghubungimu dengan detail akses dan langkah selanjutnya.",
     help: "Ada pertanyaan? Balas saja e-mail ini.",
     signoff: "— Tim ProAIcademy",
@@ -154,6 +164,13 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   const salesTo = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
   const t = BUYER_COPY[order.customer_lang === "id" ? "id" : "en"];
   const name = (order.customer_name || "").trim() || t.there;
+  // The details the buyer typed at checkout, echoed back so they can confirm we captured
+  // them correctly and so the e-mail is a self-contained record.
+  const dName = (order.customer_name || "").trim() || t.notProvided;
+  const dPhone = (order.customer_phone || "").trim() || t.notProvided;
+
+  const detailsRow = (label: string, value: string) =>
+    `<tr><td style="padding:3px 16px 3px 0;color:#666">${esc(label)}</td><td><strong>${esc(value)}</strong></td></tr>`;
 
   const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:560px">
   <h2 style="margin:0 0 16px;font-size:20px">${esc(t.heading)}</h2>
@@ -162,6 +179,12 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;border-collapse:collapse">${itemRows(items)}
     <tr><td colspan="2" style="padding:10px 12px 0 0;border-top:1px solid #ddd"><strong>${esc(t.total)}</strong></td>
         <td style="padding:10px 0 0;text-align:right;border-top:1px solid #ddd"><strong>${esc(rp(order.gross_amount))}</strong></td></tr>
+  </table>
+  <h3 style="margin:0 0 8px;font-size:16px">${esc(t.detailsTitle)}</h3>
+  <table cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+    ${detailsRow(t.nameLabel, dName)}
+    ${detailsRow(t.emailLabel, buyerEmail)}
+    ${detailsRow(t.phoneLabel, dPhone)}
   </table>
   <p style="margin:0 0 20px;color:#666;font-size:13px">${esc(t.orderLabel)} ${esc(order.midtrans_order_id)} · ${esc(t.paidVia)} ${esc(order.payment_type || "-")}</p>
   <p style="margin:0 0 12px;padding:14px 16px;background:#f4f1ff;border-left:3px solid #7c3aed;border-radius:6px"><strong>${esc(t.contact)}</strong></p>
@@ -178,6 +201,12 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
     ...items.map((it) => `  ${it.qty} x ${it.title} — ${rp(it.unit_price * it.qty)}`),
     ``,
     `${t.total}: ${rp(order.gross_amount)}`,
+    ``,
+    `${t.detailsTitle}:`,
+    `  ${t.nameLabel}: ${dName}`,
+    `  ${t.emailLabel}: ${buyerEmail}`,
+    `  ${t.phoneLabel}: ${dPhone}`,
+    ``,
     `${t.orderLabel} ${order.midtrans_order_id} · ${t.paidVia} ${order.payment_type || "-"}`,
     ``,
     t.contact,
