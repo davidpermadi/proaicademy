@@ -13,7 +13,9 @@
 //   MIDTRANS_SERVER_KEY — required, verifies the notification signature.
 //   RESEND_API_KEY      — required for both e-mails. Without it the payment still
 //                         processes normally; only the notifications are skipped.
-//   SALE_NOTIFY_TO      — owner recipient. Default davidpermadi@proaicademy.id
+//   SALE_NOTIFY_TO      — owner recipient(s). Comma/semicolon/whitespace-separated, so the
+//                         sale e-mail can fan out to several inboxes. Default:
+//                         "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com".
 //   SALE_NOTIFY_FROM    — sender for both. Default "ProAIcademy <sales@proaicademy.id>".
 //                         Must be on a domain verified in Resend, or Resend rejects it.
 //
@@ -34,6 +36,12 @@ async function cfg(admin: any, name: string): Promise<string> {
     return data ?? "";
   } catch (_) { return ""; }
 }
+// Owner sale notification goes to these inboxes unless SALE_NOTIFY_TO overrides them.
+const DEFAULT_SALE_NOTIFY_TO = "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com";
+// SALE_NOTIFY_TO may list several addresses (comma / semicolon / whitespace separated).
+const parseRecipients = (raw: string): string[] =>
+  raw.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+
 const rp = (n: number) => "Rp " + Number(n || 0).toLocaleString("id-ID");
 // Order data is buyer-supplied; it lands in an HTML e-mail, so escape it.
 const esc = (s: unknown) =>
@@ -65,7 +73,8 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // key leaves the order visibly un-notified — which is the truth. Returning quietly here
   // would mark it notified when nothing was sent.
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
-  const to = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
+  const to = parseRecipients((await cfg(admin, "SALE_NOTIFY_TO")) || DEFAULT_SALE_NOTIFY_TO);
+  if (!to.length) throw new Error("SALE_NOTIFY_TO has no valid recipients");
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
 
   const name = order.customer_name || "(not provided)";
@@ -110,7 +119,7 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   ].join("\n");
 
   await resendSend(apiKey, {
-    from, to: [to], subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
+    from, to, subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
     html, text, reply_to: buyerEmail || undefined,
   });
 }
@@ -161,7 +170,9 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // No address means nothing to send to. Throw so it stays visible rather than looking sent.
   if (!buyerEmail) throw new Error("no buyer e-mail on order");
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
-  const salesTo = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
+  // Buyer replies land with the primary owner address (first of the notify list).
+  const salesTo = parseRecipients((await cfg(admin, "SALE_NOTIFY_TO")) || DEFAULT_SALE_NOTIFY_TO)[0]
+    || "davidpermadi@proaicademy.id";
   const t = BUYER_COPY[order.customer_lang === "id" ? "id" : "en"];
   const name = (order.customer_name || "").trim() || t.there;
   // The details the buyer typed at checkout, echoed back so they can confirm we captured
