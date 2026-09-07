@@ -34,27 +34,40 @@ on conflict (id) do update set
   tag_key=excluded.tag_key, title=excluded.title, description=excluded.description, sort_order=excluded.sort_order;
 
 -- ===== EBOOKS =====
-insert into public.ebooks (id,cat,price,old_price,icon,grad,pages,rating,downloads,title,description,sort_order) values
-('eb1','Prompts',99000,149000,'📕','linear-gradient(135deg,#7c3aed,#2563eb)',120,4.9,5400,
- '{"en":"The Prompt Playbook","id":"Buku Sakti Prompt"}','{"en":"200+ copy-paste prompts for work & business.","id":"200+ prompt siap pakai untuk kerja & bisnis."}',1),
-('eb2','Tools',79000,0,'🧰','linear-gradient(135deg,#059669,#0891b2)',64,4.8,3100,
- '{"en":"100 AI Tools for Business","id":"100 Tools AI untuk Bisnis"}','{"en":"A curated directory with use cases & pricing.","id":"Direktori terkurasi lengkap use case & harga."}',2),
-('eb3','Career',0,0,'🗺️','linear-gradient(135deg,#ea580c,#db2777)',38,4.9,8700,
- '{"en":"AI Career Roadmap 2026","id":"Roadmap Karier AI 2026"}','{"en":"Free guide to landing an AI-powered role.","id":"Panduan gratis meraih karier berbasis AI."}',3),
-('eb4','Productivity',89000,0,'⚙️','linear-gradient(135deg,#2563eb,#06b6d4)',88,4.7,2400,
- '{"en":"Automate Your Workday","id":"Otomatiskan Hari Kerjamu"}','{"en":"Templates to automate repetitive tasks.","id":"Template untuk otomatisasi tugas berulang."}',4),
-('eb5','Productivity',69000,99000,'⚡','linear-gradient(135deg,#0891b2,#2563eb)',72,4.8,4100,
- '{"en":"ChatGPT for Productivity","id":"ChatGPT untuk Produktivitas"}','{"en":"Save 10+ hours a week with smart workflows.","id":"Hemat 10+ jam seminggu dengan alur kerja cerdas."}',5),
-('eb6','Business',119000,179000,'💼','linear-gradient(135deg,#4f46e5,#7c3aed)',96,4.9,1900,
- '{"en":"AI for Small Business Owners","id":"AI untuk Pemilik Usaha Kecil"}','{"en":"Cut costs and grow with practical AI playbooks.","id":"Hemat biaya & bertumbuh dengan playbook AI praktis."}',6),
-('eb7','Creative',99000,0,'🎨','linear-gradient(135deg,#db2777,#7c3aed)',84,4.7,2600,
- '{"en":"The Image Generation Handbook","id":"Panduan Generasi Gambar AI"}','{"en":"Master Midjourney, DALL·E & Stable Diffusion.","id":"Kuasai Midjourney, DALL·E & Stable Diffusion."}',7),
-('eb8','Foundations',0,0,'📗','linear-gradient(135deg,#059669,#16a34a)',24,4.8,11200,
- '{"en":"AI Foundations Cheat Sheet","id":"Lembar Sakti Dasar AI"}','{"en":"The free quick-start every beginner needs.","id":"Panduan cepat gratis untuk setiap pemula."}',8)
+insert into public.ebooks (id,cat,price,old_price,icon,grad,pages,rating,downloads,title,description,file_path,file_name,file_size_bytes,sort_order) values
+('eb1','Foundations',79000,0,'📘','linear-gradient(135deg,#4f46e5,#2563eb)',34,0,0,
+ '{"en":"AI Foundation Guide","id":"Panduan Fondasi AI"}',
+ '{"en":"Your plain-English starting point for AI at work — what it is, how generative models work, and which assistant to use when (ChatGPT, Claude, Gemini, Copilot). Includes role-by-role playbooks, responsible-use guidance and a 30-day ramp-up plan. No coding required.","id":"Titik awal memahami AI untuk kerja dengan bahasa sederhana — apa itu AI, cara kerja model generatif, dan kapan memakai ChatGPT, Claude, Gemini, atau Copilot. Termasuk playbook per peran, panduan pakai yang bijak, dan rencana 30 hari. Tanpa perlu coding."}',
+ 'eb1/ai-foundation-guide.pdf','ProAIcademy-AI-Foundation-Guide.pdf',13008128,1),
+('eb2','Foundations',75000,0,'📗','linear-gradient(135deg,#059669,#16a34a)',48,0,0,
+ '{"en":"Getting Started with Claude AI","id":"Memulai dengan Claude AI"}',
+ '{"en":"A friendly, no-nonsense beginner''s guide to Anthropic''s Claude. Learn what makes Claude different, how to set it up and prompt it well, and how to use its toolbox — Claude Code, Cowork, Connectors, Artifacts and Memory — to get real work done from day one.","id":"Panduan pemula yang ramah dan langsung ke inti tentang Claude dari Anthropic. Pahami keunggulan Claude, cara menyiapkan dan memberi prompt yang baik, serta memanfaatkan perangkatnya — Claude Code, Cowork, Connectors, Artifacts, dan Memory — untuk bekerja sejak hari pertama."}',
+ 'eb2/getting-started-with-claude-ai.pdf','ProAIcademy-Getting-Started-with-Claude-AI.pdf',2574007,2),
+('eb3','Prompts',75000,0,'💬','linear-gradient(135deg,#7c3aed,#2563eb)',45,0,0,
+ '{"en":"Mastering Prompt Engineering","id":"Menguasai Prompt Engineering"}',
+ '{"en":"Write better prompts and get reliable, high-quality results from any AI assistant. Master the six-part anatomy of a strong prompt, core techniques like few-shot and chain-of-thought, and advanced patterns — with real worked case studies and a ready-to-use starter prompt library.","id":"Tulis prompt yang lebih baik dan dapatkan hasil yang andal dan berkualitas dari asisten AI mana pun. Kuasai enam komponen prompt yang kuat, teknik inti seperti few-shot dan chain-of-thought, serta pola lanjutan — dengan studi kasus nyata dan pustaka prompt siap pakai."}',
+ 'eb3/mastering-prompt-engineering.pdf','ProAIcademy-Mastering-Prompt-Engineering.pdf',1869757,3),
+('eb4','Productivity',95000,0,'⚡','linear-gradient(135deg,#0891b2,#2563eb)',51,0,0,
+ '{"en":"ChatGPT for Daily Productivity","id":"ChatGPT untuk Produktivitas Harian"}',
+ '{"en":"A practical, self-paced course that turns ChatGPT into repeatable output. Eleven modules cover prompting, writing, summarizing, planning, working with data and building reusable workflows — backed by a full prompt library and a 30-day plan to save hours every week.","id":"Kursus praktis dan mandiri yang mengubah ChatGPT menjadi hasil kerja yang berulang. Sebelas modul mencakup prompting, menulis, meringkas, merencanakan, mengolah data, dan membangun alur kerja yang bisa dipakai ulang — plus pustaka prompt dan rencana 30 hari untuk menghemat waktu."}',
+ 'eb4/chatgpt-for-daily-productivity.pdf','ProAIcademy-ChatGPT-for-Daily-Productivity.pdf',2220523,4),
+('eb5','Productivity',95000,0,'🧠','linear-gradient(135deg,#7c3aed,#db2777)',62,0,0,
+ '{"en":"Claude AI for Daily Productivity","id":"Claude AI untuk Produktivitas Harian"}',
+ '{"en":"A Claude-specific productivity course built around real work. Learn the C-G-C-O-R prompting framework and put Claude to work on planning, email, meetings, documents, research and decisions — then package your best prompts into Claude Projects. Includes a 120+ prompt library and 7- and 30-day challenges.","id":"Kursus produktivitas khusus Claude yang dibangun dari pekerjaan nyata. Pelajari kerangka prompting C-G-C-O-R dan gunakan Claude untuk perencanaan, email, rapat, dokumen, riset, dan keputusan — lalu kemas prompt terbaikmu ke Claude Projects. Termasuk 120+ prompt dan tantangan 7 & 30 hari."}',
+ 'eb5/claude-ai-for-daily-productivity.pdf','ProAIcademy-Claude-AI-for-Daily-Productivity.pdf',2782541,5),
+('eb6','Tools',85000,0,'🧰','linear-gradient(135deg,#059669,#0891b2)',45,0,0,
+ '{"en":"100 AI Tools for Business and Professional Workers","id":"100 Tool AI untuk Bisnis & Profesional"}',
+ '{"en":"A curated reference to 100 top AI tools across 10 business categories — automation, writing, meetings, sales, design, project management, video, research, HR and scheduling. Each profile covers what the tool does, its best use case, who it''s for and its pricing, with a direct link to explore.","id":"Referensi terkurasi berisi 100 tool AI terbaik dalam 10 kategori bisnis — otomatisasi, penulisan, rapat, sales, desain, manajemen proyek, video, riset, HR, dan penjadwalan. Tiap profil menjelaskan fungsi, use case terbaik, target pengguna, dan harga, lengkap dengan tautan langsung."}',
+ 'eb6/100-ai-tools-for-business.pdf','ProAIcademy-100-AI-Tools-for-Business-and-Professional-Workers.pdf',2348653,6),
+('eb7','Career',75000,0,'🗺️','linear-gradient(135deg,#ea580c,#db2777)',41,0,0,
+ '{"en":"AI Career Roadmap 2026","id":"Roadmap Karier AI 2026"}',
+ '{"en":"A no-nonsense transition plan for professionals moving into AI-driven roles. Audit your transferable strengths, build AI fluency without a CS degree, and follow three concrete tracks — Industrial, Financial & Quantitative, or the Academic Bridge — with a quarter-by-quarter 12-month execution plan.","id":"Rencana transisi yang lugas bagi profesional yang beralih ke peran berbasis AI. Audit kekuatan yang bisa dialihkan, bangun kefasihan AI tanpa gelar ilmu komputer, dan ikuti tiga jalur konkret — Industri, Keuangan & Kuantitatif, atau Jembatan Akademik — dengan rencana eksekusi 12 bulan."}',
+ 'eb7/ai-career-roadmap-2026.pdf','ProAIcademy-AI-Career-Roadmap-2026.pdf',2345693,7)
 on conflict (id) do update set
   cat=excluded.cat, price=excluded.price, old_price=excluded.old_price, icon=excluded.icon, grad=excluded.grad,
   pages=excluded.pages, rating=excluded.rating, downloads=excluded.downloads, title=excluded.title,
-  description=excluded.description, sort_order=excluded.sort_order;
+  description=excluded.description, file_path=excluded.file_path, file_name=excluded.file_name,
+  file_size_bytes=excluded.file_size_bytes, sort_order=excluded.sort_order;
 
 -- ===== CONSULTING PACKAGES =====
 insert into public.consulting_packages (id,price,unit_key,featured,icon,name,tagline,features,sort_order) values
