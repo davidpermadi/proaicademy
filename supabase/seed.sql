@@ -38,7 +38,7 @@ insert into public.ebooks (id,cat,price,old_price,icon,grad,pages,rating,downloa
 ('eb1','Foundations',79000,0,'📘','linear-gradient(135deg,#4f46e5,#2563eb)',34,0,0,
  '{"en":"AI Foundation Guide","id":"Panduan Fondasi AI"}',
  '{"en":"Your plain-English starting point for AI at work — what it is, how generative models work, and which assistant to use when (ChatGPT, Claude, Gemini, Copilot). Includes role-by-role playbooks, responsible-use guidance and a 30-day ramp-up plan. No coding required.","id":"Titik awal memahami AI untuk kerja dengan bahasa sederhana — apa itu AI, cara kerja model generatif, dan kapan memakai ChatGPT, Claude, Gemini, atau Copilot. Termasuk playbook per peran, panduan pakai yang bijak, dan rencana 30 hari. Tanpa perlu coding."}',
- 'eb1/ai-foundation-guide.pdf','ProAIcademy-AI-Foundation-Guide.pdf',13008128,1),
+ 'eb1/ai-foundation-guide.pdf','ProAIcademy-AI-Foundation-Guide.pdf',2742116,1),
 ('eb2','Foundations',75000,0,'📗','linear-gradient(135deg,#059669,#16a34a)',48,0,0,
  '{"en":"Getting Started with Claude AI","id":"Memulai dengan Claude AI"}',
  '{"en":"A friendly, no-nonsense beginner''s guide to Anthropic''s Claude. Learn what makes Claude different, how to set it up and prompt it well, and how to use its toolbox — Claude Code, Cowork, Connectors, Artifacts and Memory — to get real work done from day one.","id":"Panduan pemula yang ramah dan langsung ke inti tentang Claude dari Anthropic. Pahami keunggulan Claude, cara menyiapkan dan memberi prompt yang baik, serta memanfaatkan perangkatnya — Claude Code, Cowork, Connectors, Artifacts, dan Memory — untuk bekerja sejak hari pertama."}',
