@@ -13,7 +13,9 @@
 //   MIDTRANS_SERVER_KEY — required, verifies the notification signature.
 //   RESEND_API_KEY      — required for both e-mails. Without it the payment still
 //                         processes normally; only the notifications are skipped.
-//   SALE_NOTIFY_TO      — owner recipient. Default davidpermadi@proaicademy.id
+//   SALE_NOTIFY_TO      — owner recipient(s), comma/semicolon-separated so the sale e-mail
+//                         can fan out to several inboxes. Default:
+//                         "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com".
 //   SALE_NOTIFY_FROM    — sender for both. Default "ProAIcademy <sales@proaicademy.id>".
 //                         Must be on a domain verified in Resend, or Resend rejects it.
 //
@@ -69,7 +71,7 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // key leaves the order visibly un-notified — which is the truth. Returning quietly here
   // would mark it notified when nothing was sent.
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
-  const to = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
+  const to = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com";
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
 
   const name = order.customer_name || "(not provided)";
@@ -197,7 +199,7 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // No address means nothing to send to. Throw so it stays visible rather than looking sent.
   if (!buyerEmail) throw new Error("no buyer e-mail on order");
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
-  const salesTo = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
+  const salesTo = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com";
   const t = BUYER_COPY[order.customer_lang === "id" ? "id" : "en"];
   const name = (order.customer_name || "").trim() || t.there;
   // The details the buyer typed at checkout, echoed back so they can confirm we captured
