@@ -56,7 +56,7 @@ Copy [`.env.example`](.env.example) → `.env` and adjust, then `npm run build`.
 | `MIDTRANS_SERVER_KEY` | **Edge Function secret only** | ❌ secret | Server key for Snap + webhook signature |
 | `MIDTRANS_NOTIFICATION_URL` | Edge Function (optional) | — | Overrides the webhook URL sent to Midtrans; defaults to this project's own |
 | `RESEND_API_KEY` | **Edge Function secret only** | ❌ secret | Sends the sale-notification e-mail on a successful payment |
-| `SALE_NOTIFY_TO` / `SALE_NOTIFY_FROM` | Edge Function (optional) | — | Recipient / sender of that e-mail |
+| `SALE_NOTIFY_TO` / `SALE_NOTIFY_FROM` | Edge Function (optional) | — | Recipient(s) / sender of that e-mail. `SALE_NOTIFY_TO` may be a comma-separated list; defaults to `davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com` |
 
 > `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` are injected into Edge
 > Functions automatically — never set those yourself.
@@ -281,7 +281,9 @@ supabase secrets set MIDTRANS_SERVER_KEY=YOUR_KEY MIDTRANS_IS_PRODUCTION=true
 When a payment succeeds, `midtrans-webhook` sends **two** e-mails via [Resend](https://resend.com):
 
 1. **To the store owner** — the buyer's **name**, **contact number**, e-mail, language, and the
-   ordered items, so the sales team can follow up. Reply-to is the buyer.
+   ordered items, so the sales team can follow up. Reply-to is the buyer. This goes to every
+   address in `SALE_NOTIFY_TO` (a comma-separated list) — by default both
+   `davidpermadi@proaicademy.id` **and** `davidwahyupermadi@gmail.com`.
 2. **To the buyer** — a purchase confirmation: what they bought, the total, and that the sales
    team will contact them as soon as possible. Reply-to is `SALE_NOTIFY_TO`.
 
@@ -298,8 +300,8 @@ contact details to carry.
 **Setup:** verify `proaicademy.id` in Resend (DNS records), create an API key, then:
 ```sql
 select vault.create_secret('re_your_api_key', 'RESEND_API_KEY', 'Resend key for sale notifications');
--- optional, these have sensible defaults:
-select vault.create_secret('davidpermadi@proaicademy.id', 'SALE_NOTIFY_TO', 'Sale notification recipient');
+-- optional, these have sensible defaults (SALE_NOTIFY_TO may be a comma-separated list):
+select vault.create_secret('davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com', 'SALE_NOTIFY_TO', 'Sale notification recipients');
 select vault.create_secret('ProAIcademy <sales@proaicademy.id>', 'SALE_NOTIFY_FROM', 'Sale notification sender');
 ```
 
