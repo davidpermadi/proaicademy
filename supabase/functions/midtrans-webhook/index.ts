@@ -36,6 +36,9 @@ async function cfg(admin: any, name: string): Promise<string> {
   } catch (_) { return ""; }
 }
 const rp = (n: number) => "Rp " + Number(n || 0).toLocaleString("id-ID");
+// SALE_NOTIFY_TO may hold several comma/semicolon-separated addresses. Resend wants an
+// array of individual addresses, never one comma-joined string (it 422s on that).
+const emails = (s: string) => String(s || "").split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 // Order data is buyer-supplied; it lands in an HTML e-mail, so escape it.
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -111,7 +114,7 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   ].join("\n");
 
   await resendSend(apiKey, {
-    from, to: [to], subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
+    from, to: emails(to), subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
     html, text, reply_to: buyerEmail || undefined,
   });
 }
@@ -255,9 +258,10 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
     t.signoff,
   ].join("\n");
 
+  const replyTo = emails(salesTo);
   await resendSend(apiKey, {
     from, to: [buyerEmail], subject: t.subject(rp(order.gross_amount)),
-    html, text, reply_to: salesTo,
+    html, text, reply_to: replyTo.length ? replyTo : undefined,
     ...(hasFiles ? { attachments } : {}),
   });
 }
