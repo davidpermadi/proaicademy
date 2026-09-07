@@ -13,9 +13,7 @@
 //   MIDTRANS_SERVER_KEY — required, verifies the notification signature.
 //   RESEND_API_KEY      — required for both e-mails. Without it the payment still
 //                         processes normally; only the notifications are skipped.
-//   SALE_NOTIFY_TO      — owner recipient(s). Comma/semicolon/whitespace-separated, so the
-//                         sale e-mail can fan out to several inboxes. Default:
-//                         "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com".
+//   SALE_NOTIFY_TO      — owner recipient. Default davidpermadi@proaicademy.id
 //   SALE_NOTIFY_FROM    — sender for both. Default "ProAIcademy <sales@proaicademy.id>".
 //                         Must be on a domain verified in Resend, or Resend rejects it.
 //
@@ -23,6 +21,7 @@
 // fail. A non-2xx makes Midtrans retry, which would re-run the whole handler — the
 // payment itself must never be held hostage to the mail provider being up.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 async function sha512(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(s));
@@ -36,13 +35,10 @@ async function cfg(admin: any, name: string): Promise<string> {
     return data ?? "";
   } catch (_) { return ""; }
 }
-// Owner sale notification goes to these inboxes unless SALE_NOTIFY_TO overrides them.
-const DEFAULT_SALE_NOTIFY_TO = "davidpermadi@proaicademy.id,davidwahyupermadi@gmail.com";
-// SALE_NOTIFY_TO may list several addresses (comma / semicolon / whitespace separated).
-const parseRecipients = (raw: string): string[] =>
-  raw.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
-
 const rp = (n: number) => "Rp " + Number(n || 0).toLocaleString("id-ID");
+// SALE_NOTIFY_TO may hold several comma/semicolon-separated addresses. Resend wants an
+// array of individual addresses, never one comma-joined string (it 422s on that).
+const emails = (s: string) => String(s || "").split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 // Order data is buyer-supplied; it lands in an HTML e-mail, so escape it.
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -73,8 +69,7 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // key leaves the order visibly un-notified — which is the truth. Returning quietly here
   // would mark it notified when nothing was sent.
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
-  const to = parseRecipients((await cfg(admin, "SALE_NOTIFY_TO")) || DEFAULT_SALE_NOTIFY_TO);
-  if (!to.length) throw new Error("SALE_NOTIFY_TO has no valid recipients");
+  const to = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
 
   const name = order.customer_name || "(not provided)";
@@ -119,7 +114,7 @@ async function sendOwnerEmail(admin: any, order: any, items: any[], buyerEmail: 
   ].join("\n");
 
   await resendSend(apiKey, {
-    from, to, subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
+    from, to: emails(to), subject: `New paid order — ${rp(order.gross_amount)} — ${name}`,
     html, text, reply_to: buyerEmail || undefined,
   });
 }
@@ -139,7 +134,9 @@ const BUYER_COPY = {
     emailLabel: "Email",
     phoneLabel: "Phone",
     notProvided: "(not provided)",
-    contact: "Our sales team will contact you as soon as possible with your access details and next steps.",
+    attached: "Your e-book file is attached to this e-mail — it's yours to download and keep.",
+    attachedMulti: "Your e-book files are attached to this e-mail — they're yours to download and keep.",
+    contact: "If your order includes a course or consulting, our sales team will contact you shortly with access details and next steps.",
     help: "Questions in the meantime? Just reply to this e-mail.",
     signoff: "— The ProAIcademy team",
     there: "there",
@@ -157,12 +154,42 @@ const BUYER_COPY = {
     emailLabel: "Email",
     phoneLabel: "Telepon",
     notProvided: "(tidak diisi)",
-    contact: "Tim sales kami akan segera menghubungimu dengan detail akses dan langkah selanjutnya.",
+    attached: "File e-book kamu terlampir pada e-mail ini — silakan unduh dan simpan.",
+    attachedMulti: "File e-book kamu terlampir pada e-mail ini — silakan unduh dan simpan semuanya.",
+    contact: "Jika pesananmu mencakup kelas atau konsultasi, tim sales kami akan segera menghubungimu dengan detail akses dan langkah selanjutnya.",
     help: "Ada pertanyaan? Balas saja e-mail ini.",
     signoff: "— Tim ProAIcademy",
     there: "kamu",
   },
 } as const;
+
+// Pull the actual e-book file(s) for any e-book line items and return them as Resend
+// attachments (base64). Courses/consulting have no file and are skipped; an e-book with
+// no file uploaded yet is skipped too (never block the confirmation). A genuine read
+// failure throws, so notifyOnce records it and Midtrans's retry tries again — the same
+// "make failures visible" contract the e-mails already use. Downloads use the service
+// role, which bypasses storage RLS.
+async function ebookAttachments(admin: any, items: any[]) {
+  const ids = [...new Set(
+    items.filter((it) => it.product_type === "ebook").map((it) => it.product_id),
+  )];
+  if (!ids.length) return [] as { filename: string; content: string }[];
+  const { data: rows } = await admin.from("ebooks").select("id,file_path,file_name").in("id", ids);
+  const byId = new Map((rows ?? []).map((e: any) => [e.id, e]));
+  const attachments: { filename: string; content: string }[] = [];
+  for (const id of ids) {
+    const e = byId.get(id);
+    if (!e || !e.file_path) continue; // nothing uploaded for this e-book yet
+    const { data: blob, error } = await admin.storage.from("ebook-files").download(e.file_path);
+    if (error || !blob) throw new Error(`could not read file for ${id}: ${error?.message ?? "no data"}`);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    attachments.push({
+      filename: e.file_name || (e.file_path.split("/").pop() ?? `${id}.pdf`),
+      content: encodeBase64(bytes),
+    });
+  }
+  return attachments;
+}
 
 async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: string) {
   const apiKey = await cfg(admin, "RESEND_API_KEY");
@@ -170,9 +197,7 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   // No address means nothing to send to. Throw so it stays visible rather than looking sent.
   if (!buyerEmail) throw new Error("no buyer e-mail on order");
   const from = (await cfg(admin, "SALE_NOTIFY_FROM")) || "ProAIcademy <sales@proaicademy.id>";
-  // Buyer replies land with the primary owner address (first of the notify list).
-  const salesTo = parseRecipients((await cfg(admin, "SALE_NOTIFY_TO")) || DEFAULT_SALE_NOTIFY_TO)[0]
-    || "davidpermadi@proaicademy.id";
+  const salesTo = (await cfg(admin, "SALE_NOTIFY_TO")) || "davidpermadi@proaicademy.id";
   const t = BUYER_COPY[order.customer_lang === "id" ? "id" : "en"];
   const name = (order.customer_name || "").trim() || t.there;
   // The details the buyer typed at checkout, echoed back so they can confirm we captured
@@ -183,6 +208,11 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
   const detailsRow = (label: string, value: string) =>
     `<tr><td style="padding:3px 16px 3px 0;color:#666">${esc(label)}</td><td><strong>${esc(value)}</strong></td></tr>`;
 
+  // Deliver the purchased e-book file(s) right here in the confirmation e-mail.
+  const attachments = await ebookAttachments(admin, items);
+  const hasFiles = attachments.length > 0;
+  const attachedMsg = attachments.length > 1 ? t.attachedMulti : t.attached;
+
   const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:560px">
   <h2 style="margin:0 0 16px;font-size:20px">${esc(t.heading)}</h2>
   <p style="margin:0 0 12px">${esc(t.greeting(name))}</p>
@@ -191,6 +221,7 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
     <tr><td colspan="2" style="padding:10px 12px 0 0;border-top:1px solid #ddd"><strong>${esc(t.total)}</strong></td>
         <td style="padding:10px 0 0;text-align:right;border-top:1px solid #ddd"><strong>${esc(rp(order.gross_amount))}</strong></td></tr>
   </table>
+  ${hasFiles ? `<p style="margin:0 0 20px;padding:14px 16px;background:#ecfdf5;border-left:3px solid #059669;border-radius:6px">📎 <strong>${esc(attachedMsg)}</strong></p>` : ""}
   <h3 style="margin:0 0 8px;font-size:16px">${esc(t.detailsTitle)}</h3>
   <table cellpadding="0" cellspacing="0" style="margin-bottom:20px">
     ${detailsRow(t.nameLabel, dName)}
@@ -212,6 +243,7 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
     ...items.map((it) => `  ${it.qty} x ${it.title} — ${rp(it.unit_price * it.qty)}`),
     ``,
     `${t.total}: ${rp(order.gross_amount)}`,
+    ...(hasFiles ? [``, attachedMsg] : []),
     ``,
     `${t.detailsTitle}:`,
     `  ${t.nameLabel}: ${dName}`,
@@ -226,9 +258,11 @@ async function sendBuyerEmail(admin: any, order: any, items: any[], buyerEmail: 
     t.signoff,
   ].join("\n");
 
+  const replyTo = emails(salesTo);
   await resendSend(apiKey, {
     from, to: [buyerEmail], subject: t.subject(rp(order.gross_amount)),
-    html, text, reply_to: salesTo,
+    html, text, reply_to: replyTo.length ? replyTo : undefined,
+    ...(hasFiles ? { attachments } : {}),
   });
 }
 
